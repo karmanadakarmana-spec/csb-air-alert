@@ -34,46 +34,48 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 /* --------------------------------- world --------------------------------- */
-// polygons are [lat, lng]
-const TERRITORIES = {
-  csb: {
-    id: 'csb', name: "Carl's Spelling Bee", color: '#1d4ed8',
-    polygon: [[51.05,2.5],[50.72,3.1],[50.35,4.15],[49.95,4.85],[49.5,5.9],[49.45,6.37],[49.1,7.0],[49.05,8.2],[48.4,7.8],[47.6,7.55],[47.5,7.0],[46.4,6.1],[46.1,6.8],[45.8,7.05],[45.1,7.0],[44.1,7.6],[43.78,7.5],[43.5,7.0],[43.1,6.3],[43.3,5.3],[43.4,4.5],[43.0,3.1],[42.45,3.2],[41.95,3.25],[41.3,2.3],[41.15,1.6],[41.6,1.0],[42.2,0.6],[42.5,-0.3],[42.8,-1.5],[43.35,-1.78],[44.0,-1.3],[45.0,-1.2],[46.0,-1.2],[46.8,-2.1],[47.3,-2.5],[47.5,-3.1],[47.8,-4.1],[48.4,-4.8],[48.7,-4.0],[48.85,-3.0],[48.7,-2.0],[48.65,-1.6],[49.3,-1.2],[49.7,-1.9],[49.65,-1.3],[49.4,-0.9],[49.35,0.2],[49.7,1.2],[50.1,1.6],[50.7,1.6]]
-  },
-  du_continent: {
-    id: 'du_continent', name: 'Dutch Union (mainland)', color: '#7f1d4d',
-    polygon: [[53.6,6.5],[53.6,8.2],[49.05,8.2],[49.1,7.0],[49.45,6.37],[49.5,5.9],[49.95,4.85],[50.35,4.15],[50.72,3.1],[51.05,2.5],[51.35,3.4],[51.6,4.0],[52.4,4.6],[53.0,4.8],[53.4,6.0]]
-  },
-  du_england: {
-    id: 'du_england', name: 'Dutch Union (southern England)', color: '#7f1d4d',
-    polygon: [[50.1,-5.3],[50.7,-3.5],[50.6,-2.0],[50.75,-1.1],[50.8,0.3],[51.0,1.3],[51.35,1.4],[51.5,0.9],[51.7,0.6],[51.75,-0.5],[51.7,-1.9],[51.6,-3.2],[51.2,-4.5],[50.5,-5.2]]
+/* ----------------------------- map geometry ------------------------------ */
+// Real administrative borders (Natural Earth, simplified). See data/*.json
+const GEO = JSON.parse(fs.readFileSync(path.join(__dirname, 'geo.json'), 'utf8'));
+const polysOf = g => g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+const ZONES = GEO.zones.features.map(f => {
+  const polys = polysOf(f.geometry);
+  let w = 180, s = 90, e = -180, n = -90;
+  for (const poly of polys) for (const [x, y] of poly[0]) { if (x < w) w = x; if (x > e) e = x; if (y < s) s = y; if (y > n) n = y; }
+  const p = f.properties;
+  return { id: p.id, name: p.name, country: p.country, side: p.side, group: p.group, lat: p.lat, lng: p.lng, small: !!p.small, polys, bbox: [w, s, e, n] };
+});
+const ZONE_BY_ID = Object.fromEntries(ZONES.map(z => [z.id, z]));
+const CSB_ZONES = ZONES.filter(z => z.side === 'csb');
+
+function inRing(ring, x, y) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
   }
-};
-
-const FRONTLINE = [
-  { id: 'FL-FLANDERS', name: 'Flanders front', note: 'Dutch Union land push from the north', polygon: [[51.05,2.55],[50.95,3.3],[50.75,3.9],[50.5,3.6],[50.7,2.9],[50.85,2.45]] },
-  { id: 'FL-LORRAINE', name: 'Lorraine front', note: 'Contested border zone near Luxembourg', polygon: [[49.55,5.4],[49.6,6.1],[49.4,6.4],[49.15,6.0],[49.3,5.5]] },
-  { id: 'FL-BRITTANY', name: 'Brittany landing', note: 'Amphibious landing from the west', polygon: [[48.5,-4.7],[48.5,-4.3],[48.2,-4.3],[48.25,-4.7]] },
-  { id: 'FL-COTENTIN', name: 'Cotentin landing', note: 'Small beachhead', polygon: [[49.7,-1.7],[49.7,-1.5],[49.6,-1.5]] }
-];
-
-const REGIONS = [
-  { id: 'hdf', name: 'Hauts-de-France', lat: 50.0, lng: 2.8, radius_km: 90 },
-  { id: 'idf', name: 'Île-de-France', lat: 48.85, lng: 2.4, radius_km: 70 },
-  { id: 'nor', name: 'Normandie', lat: 49.1, lng: 0.2, radius_km: 90 },
-  { id: 'bre', name: 'Bretagne', lat: 48.2, lng: -2.9, radius_km: 100 },
-  { id: 'pdl', name: 'Pays de la Loire', lat: 47.5, lng: -0.8, radius_km: 90 },
-  { id: 'cvl', name: 'Centre-Val de Loire', lat: 47.5, lng: 1.7, radius_km: 90 },
-  { id: 'ges', name: 'Grand Est', lat: 48.7, lng: 5.8, radius_km: 120 },
-  { id: 'bfc', name: 'Bourgogne-Franche-Comté', lat: 47.2, lng: 5.0, radius_km: 100 },
-  { id: 'naq', name: 'Nouvelle-Aquitaine', lat: 45.0, lng: 0.2, radius_km: 170 },
-  { id: 'ara', name: 'Auvergne-Rhône-Alpes', lat: 45.4, lng: 4.9, radius_km: 130 },
-  { id: 'occ', name: 'Occitanie', lat: 43.7, lng: 2.2, radius_km: 140 },
-  { id: 'paca', name: "Provence-Alpes-Côte d'Azur", lat: 43.8, lng: 6.0, radius_km: 90 },
-  { id: 'cat', name: 'Catalonia (incl. Barcelona)', lat: 41.7, lng: 1.8, radius_km: 90 },
-  { id: 'and', name: 'Andorra', lat: 42.55, lng: 1.58, radius_km: 25 },
-  { id: 'mco', name: 'Monaco', lat: 43.74, lng: 7.42, radius_km: 15 }
-];
+  return inside;
+}
+function inZone(z, lng, lat) {
+  const b = z.bbox;
+  if (lng < b[0] || lng > b[2] || lat < b[1] || lat > b[3]) return false;
+  for (const poly of z.polys) {
+    if (!inRing(poly[0], lng, lat)) continue;
+    let hole = false;
+    for (let i = 1; i < poly.length; i++) if (inRing(poly[i], lng, lat)) { hole = true; break; }
+    if (!hole) return true;
+  }
+  return false;
+}
+function zoneAt(lat, lng, zones = CSB_ZONES) {
+  for (const z of zones) if (inZone(z, lng, lat)) return z;
+  return null;
+}
+function nearestZone(lat, lng) {
+  let best = null, bd = 1e9;
+  for (const z of CSB_ZONES) { const d = dist({ lat, lng }, z); if (d < bd) { bd = d; best = z; } }
+  return best;
+}
 
 const TARGETS = [
   ['Paris','idf',48.8566,2.3522,3],['Lille','hdf',50.6292,3.0573,3],['Amiens','hdf',49.8941,2.2958,1],
@@ -85,13 +87,18 @@ const TARGETS = [
   ['Toulouse','occ',43.6047,1.4442,1],['Montpellier','occ',43.6108,3.8767,1],['Perpignan','occ',42.6887,2.8948,1],
   ['Marseille','paca',43.2965,5.3698,1],['Nice','paca',43.7102,7.262,1],['Monaco','mco',43.7384,7.4246,1],
   ['Andorra la Vella','and',42.5063,1.5218,1],['Barcelona','cat',41.3874,2.1686,2],['Girona','cat',41.9794,2.8214,1],
-  ['Tarragona','cat',41.1189,1.2445,1]
-].map(([name, region_id, lat, lng, weight]) => ({ name, region_id, lat, lng, weight }));
+  ['Lleida','cat',41.6176,0.62,1]
+].map(([name, , lat, lng, weight]) => ({ name, lat, lng, weight }));
+for (const t of TARGETS) {
+  const z = zoneAt(t.lat, t.lng) || nearestZone(t.lat, t.lng);
+  t.zone_id = z.id; t.zone_name = z.name; t.group = z.group;
+}
 
 const WEAPONS = {
   trident_d5: { id: 'trident_d5', name: 'Trident D5', category: 'ballistic_missile', class: 'SLBM (submarine-launched)', platform: 'sea', speed_kmh: 4200, apex_km: 110, range_km: 7000, intercept_chance: 0.45, notes: 'Submarine-launched ballistic missile' },
   hammer_b3: { id: 'hammer_b3', name: 'Hammer-B3', category: 'ballistic_missile', class: 'Road-mobile ballistic missile (fictional)', platform: 'land', speed_kmh: 3200, apex_km: 60, range_km: 1500, intercept_chance: 0.5, notes: 'Only confirmed at London launcher batteries (CSB Intelligence)' },
   storm_shadow: { id: 'storm_shadow', name: 'Storm Shadow', category: 'cruise_missile', class: 'Air-launched cruise missile', platform: 'air', speed_kmh: 950, apex_km: 0.1, range_km: 560, intercept_chance: 0.6, notes: 'Low-altitude, terrain hugging' },
+  kalibr: { id: 'kalibr', name: 'Kalibr', category: 'cruise_missile', class: 'Ship-launched cruise missile', platform: 'sea', speed_kmh: 900, apex_km: 0.05, range_km: 1500, intercept_chance: 0.6, notes: 'Sea-skimming, launched from surface ships' },
   shahed_136: { id: 'shahed_136', name: 'Shahed-136', category: 'shahed_drone', class: 'Propeller loitering munition', platform: 'land/sea', speed_kmh: 185, apex_km: 0.25, range_km: 2500, intercept_chance: 0.8, notes: 'Slow, often launched in salvos' },
   shahed_238: { id: 'shahed_238', name: 'Shahed-238', category: 'jet_drone', class: 'Jet-powered loitering munition', platform: 'land/sea', speed_kmh: 600, apex_km: 0.5, range_km: 1500, intercept_chance: 0.65, notes: 'Jet-powered, much faster than the 136' },
   falcon_j: { id: 'falcon_j', name: 'Falcon-J', category: 'jet_drone', class: 'Jet attack drone (fictional)', platform: 'land', speed_kmh: 800, apex_km: 0.6, range_km: 1200, intercept_chance: 0.6, notes: 'Fictional Dutch Union jet drone' }
@@ -108,10 +115,10 @@ const LAUNCH_SITES = [
   { id: 'DU-LUX', name: 'Luxembourg', kind: 'land', lat: 49.61, lng: 6.13, weapons: ['shahed_136','shahed_238'], confidence: 'assessed' },
   { id: 'DU-CGN', name: 'Cologne area', kind: 'land', lat: 50.94, lng: 6.96, weapons: ['shahed_136','shahed_238','falcon_j'], confidence: 'assessed' },
   { id: 'DU-DUS', name: 'Düsseldorf area', kind: 'land', lat: 51.23, lng: 6.78, weapons: ['shahed_136','falcon_j'], confidence: 'assessed' },
-  { id: 'SEA-NORTH', name: 'North Sea', kind: 'sea', lat: 53.8, lng: 3.0, weapons: ['trident_d5','shahed_136'], confidence: 'assessed' },
-  { id: 'SEA-CHAN', name: 'English Channel', kind: 'sea', lat: 50.3, lng: -0.5, weapons: ['trident_d5','shahed_136','shahed_238'], confidence: 'assessed' },
-  { id: 'SEA-WEST', name: 'Atlantic, west of Brittany', kind: 'sea', lat: 47.2, lng: -8.0, weapons: ['trident_d5','shahed_136','shahed_238'], confidence: 'assessed' },
-  { id: 'SEA-BISC', name: 'Bay of Biscay', kind: 'sea', lat: 44.5, lng: -5.5, weapons: ['trident_d5'], confidence: 'assessed' },
+  { id: 'SEA-NORTH', name: 'North Sea', kind: 'sea', lat: 53.8, lng: 3.0, weapons: ['trident_d5','shahed_136','kalibr'], confidence: 'assessed' },
+  { id: 'SEA-CHAN', name: 'English Channel', kind: 'sea', lat: 50.3, lng: -0.5, weapons: ['trident_d5','shahed_136','shahed_238','kalibr'], confidence: 'assessed' },
+  { id: 'SEA-WEST', name: 'Atlantic, west of Brittany', kind: 'sea', lat: 47.2, lng: -8.0, weapons: ['trident_d5','shahed_136','shahed_238','kalibr'], confidence: 'assessed' },
+  { id: 'SEA-BISC', name: 'Bay of Biscay', kind: 'sea', lat: 44.5, lng: -5.5, weapons: ['trident_d5','kalibr'], confidence: 'assessed' },
   { id: 'AIR-NS', name: 'Air-launch box, North Sea', kind: 'air', lat: 52.4, lng: 2.6, weapons: ['storm_shadow'], confidence: 'assessed' },
   { id: 'AIR-CH', name: 'Air-launch box, Channel', kind: 'air', lat: 50.4, lng: -1.2, weapons: ['storm_shadow'], confidence: 'assessed' }
 ];
@@ -175,28 +182,47 @@ function step(now = Date.now()) {
   }
   // alert bookkeeping
   const active = alertsNow(now);
-  const ids = new Set(active.map(a => a.region_id));
+  const ids = new Set(active.map(a => a.zone_id));
   for (const id of ids) if (!regionSince[id]) regionSince[id] = now;
   for (const id of Object.keys(regionSince)) if (!ids.has(id)) delete regionSince[id];
 }
 
 function liveThreats(now = Date.now()) { return threats.filter(t => !t.ended_ms && now >= t.launched_ms); }
 
-function regionsHit(t, pos) {
-  const out = new Set([t.target.region_id]);
-  for (const r of REGIONS) if (dist(pos, r) <= r.radius_km + 60) out.add(r.id);
-  return [...out];
+const PRIORITY = ['ballistic_missile', 'cruise_missile', 'jet_drone', 'shahed_drone'];
+const CLASS = { ballistic_missile: 'ballistic', cruise_missile: 'cruise', jet_drone: 'jet_drone', shahed_drone: 'shahed' };
+const etaOf = (t, now) => Math.max(0, Math.round(t.flight_s * (1 - Math.min(1, progressOf(t, now)))));
+
+// zones the threat will fly over in roughly the next 5 minutes (alerts spread as it flies)
+function pathZones(t, now) {
+  const sec = Math.floor(now / 1000);
+  if (t._zc && t._zc.sec === sec) return t._zc.zones;
+  const cur = lerp(t.origin, t.dest, Math.min(1, progressOf(t, now)));
+  const total = dist(cur, t.dest);
+  const lookahead = Math.min(total, Math.max(120, t.weapon.speed_kmh * TIME_SCALE * 300 / 3600));
+  const n = Math.min(80, Math.max(2, Math.ceil(lookahead / 10)));
+  const out = [], seen = new Set();
+  for (let i = 0; i <= n; i++) {
+    const f = total > 0 ? (i / n) * (lookahead / total) : 0;
+    const q = lerp(cur, t.dest, f);
+    const z = zoneAt(q.lat, q.lng);
+    if (z && !seen.has(z.id)) { seen.add(z.id); out.push(z.id); }
+  }
+  if (lookahead >= total && !seen.has(t.target.zone_id)) out.push(t.target.zone_id);
+  t._zc = { sec, zones: out };
+  return out;
 }
 
 function serialize(t, now = Date.now(), detail = false) {
   const p = t.ended_ms ? (t.end_status === 'intercepted' ? t.interceptAt : 1) : Math.min(1, progressOf(t, now));
   const pos = t.ended_ms ? t.end_pos : lerp(t.origin, t.dest, p);
   const status = t.ended_ms ? t.end_status : (p < 0.08 ? 'launched' : 'inbound');
-  const remaining = t.ended_ms ? 0 : Math.max(0, Math.round(t.flight_s * (1 - p)));
+  const remaining = t.ended_ms ? 0 : etaOf(t, now);
   const o = {
     id: t.id,
     status,
     type: t.weapon.category,
+    alert_class: CLASS[t.weapon.category],
     weapon: { id: t.weapon.id, name: t.weapon.name, class: t.weapon.class, platform: t.weapon.platform },
     launched_at: new Date(t.launched_ms).toISOString(),
     eta_seconds: remaining,
@@ -212,9 +238,9 @@ function serialize(t, now = Date.now(), detail = false) {
       site_id: t.site.id, name: t.site.name, kind: t.site.kind,
       lat: r4(t.origin.lat), lng: r4(t.origin.lng), confidence: t.site.confidence
     },
-    target: { name: t.target.name, region_id: t.target.region_id, lat: r4(t.dest.lat), lng: r4(t.dest.lng) },
+    target: { name: t.target.name, zone_id: t.target.zone_id, zone_name: t.target.zone_name, group: t.target.group, lat: r4(t.dest.lat), lng: r4(t.dest.lng) },
     distance_km: Math.round(t.distance_km),
-    threatened_regions: regionsHit(t, pos),
+    threatened_zones: (t.ended_ms ? [t.target.zone_id] : pathZones(t, now)).map(id => ({ id, name: ZONE_BY_ID[id].name })),
     ended_at: t.ended_ms ? new Date(t.ended_ms).toISOString() : null
   };
   if (detail) {
@@ -227,31 +253,31 @@ function serialize(t, now = Date.now(), detail = false) {
   return o;
 }
 
+let alertCache = { at: 0, data: null };
 function alertsNow(now = Date.now()) {
-  const live = liveThreats(now);
+  if (alertCache.data && Math.abs(now - alertCache.at) < 400) return alertCache.data;
   const map = {};
-  for (const t of live) {
-    const pos = lerp(t.origin, t.dest, Math.min(1, progressOf(t, now)));
-    for (const id of regionsHit(t, pos)) {
-      (map[id] = map[id] || []).push(t);
-    }
-  }
-  return Object.entries(map).map(([id, ts]) => {
-    const r = REGIONS.find(x => x.id === id);
-    const direct = ts.some(t => t.target.region_id === id);
-    const etas = ts.map(t => Math.max(0, Math.round(t.flight_s * (1 - Math.min(1, progressOf(t, now))))));
+  for (const t of liveThreats(now)) for (const id of pathZones(t, now)) (map[id] = map[id] || []).push(t);
+  const res = Object.entries(map).map(([id, ts]) => {
+    const z = ZONE_BY_ID[id];
+    const types = [...new Set(ts.map(t => t.weapon.category))];
+    const dominant = PRIORITY.find(x => types.includes(x));
+    const direct = ts.some(t => t.target.zone_id === id);
     return {
-      region_id: id, name: r.name, lat: r.lat, lng: r.lng,
-      level: ts.some(t => t.weapon.category === 'ballistic_missile' || t.weapon.category === 'cruise_missile') && direct ? 'critical' : 'alert',
+      zone_id: id, name: z.name, group: z.group, country: z.country, lat: z.lat, lng: z.lng,
+      level: direct && (dominant === 'ballistic_missile' || dominant === 'cruise_missile') ? 'critical' : 'alert',
+      dominant_threat: CLASS[dominant],
       since: new Date(regionSince[id] || now).toISOString(),
       threat_count: ts.length,
-      threat_types: [...new Set(ts.map(t => t.weapon.category))],
+      threat_types: types,
       weapons: [...new Set(ts.map(t => t.weapon.name))],
       threat_ids: ts.map(t => t.id),
-      nearest_eta_seconds: Math.min(...etas),
-      directly_targeted: direct
+      directly_targeted: direct,
+      nearest_eta_seconds: Math.min(...ts.map(t => etaOf(t, now)))
     };
   }).sort((a, b) => a.nearest_eta_seconds - b.nearest_eta_seconds);
+  alertCache = { at: now, data: res };
+  return res;
 }
 
 function stats(now = Date.now()) {
@@ -262,7 +288,7 @@ function stats(now = Date.now()) {
   return {
     active_threats: live.length,
     active_by_type: byType,
-    regions_under_alert: alertsNow(now).length,
+    zones_under_alert: alertsNow(now).length,
     last_15min: {
       intercepted: ended.filter(t => t.end_status === 'intercepted').length,
       impacts: ended.filter(t => t.end_status === 'impact').length
@@ -333,8 +359,12 @@ function send(res, code, body, headers = {}) {
 const ok = (res, data, h) => send(res, 200, { ok: true, simulation: true, generated_at: new Date().toISOString(), ...data }, h);
 const fail = (res, code, err, msg, h) => send(res, code, { ok: false, error: err, message: msg }, h);
 
-function geojson(features) { return { type: 'FeatureCollection', features }; }
-const poly = (coords) => ({ type: 'Polygon', coordinates: [[...coords.map(([la, lo]) => [lo, la]), [coords[0][1], coords[0][0]]]] });
+const countBy = (arr, k) => arr.reduce((o, x) => (o[x[k]] = (o[x[k]] || 0) + 1, o), {});
+const zoneInfo = z => ({ id: z.id, name: z.name, country: z.country, side: z.side, group: z.group, lat: z.lat, lng: z.lng });
+
+// geometry never changes, so build it once (compact + gzipped)
+const GEOMETRY_JSON = JSON.stringify({ ok: true, simulation: true, zones: GEO.zones, groups: GEO.groups, sides: GEO.sides, neutral: GEO.neutral, neutral_labels: GEO.neutral_labels, frontline: GEO.frontline });
+const GEOMETRY_GZ = require('zlib').gzipSync(GEOMETRY_JSON);
 
 function route(req, res, url, auth) {
   const p = url.pathname.replace(/\/+$/, '');
@@ -344,14 +374,19 @@ function route(req, res, url, auth) {
 
   if (p === '/api/v1/alerts') {
     const a = alertsNow(now);
-    return ok(res, { active_count: a.length, clear_regions: REGIONS.filter(r => !a.some(x => x.region_id === r.id)).map(r => r.id), alerts: a }, H);
+    return ok(res, {
+      active_count: a.length,
+      by_class: countBy(a, 'dominant_threat'),
+      clear_zones: CSB_ZONES.filter(z => !a.some(x => x.zone_id === z.id)).map(z => z.id),
+      alerts: a
+    }, H);
   }
   let m;
-  if ((m = p.match(/^\/api\/v1\/alerts\/([\w-]+)$/))) {
-    const r = REGIONS.find(x => x.id === m[1]);
-    if (!r) return fail(res, 404, 'not_found', 'Unknown region id', H);
-    const a = alertsNow(now).find(x => x.region_id === r.id);
-    if (!a) return ok(res, { region_id: r.id, name: r.name, level: 'clear', threats: [] }, H);
+  if ((m = p.match(/^\/api\/v1\/alerts\/([\w~-]+)$/))) {
+    const z = ZONE_BY_ID[m[1]];
+    if (!z) return fail(res, 404, 'not_found', 'Unknown zone id. See GET /api/v1/zones', H);
+    const a = alertsNow(now).find(x => x.zone_id === z.id);
+    if (!a) return ok(res, { zone_id: z.id, name: z.name, level: 'clear', threats: [] }, H);
     return ok(res, { ...a, threats: a.threat_ids.map(id => serialize(threats.find(t => t.id === id), now)) }, H);
   }
   if (p === '/api/v1/threats') {
@@ -360,10 +395,11 @@ function route(req, res, url, auth) {
     if (include !== 'ended' && include !== 'all') list = list.filter(t => !t.ended_ms);
     if (include === 'ended') list = list.filter(t => t.ended_ms);
     let out = list.map(t => serialize(t, now));
-    if (q.get('type')) out = out.filter(t => t.type === q.get('type'));
+    if (q.get('type')) out = out.filter(t => t.type === q.get('type') || t.alert_class === q.get('type'));
     if (q.get('weapon')) out = out.filter(t => t.weapon.id === q.get('weapon'));
     if (q.get('status')) out = out.filter(t => t.status === q.get('status'));
-    if (q.get('region')) out = out.filter(t => t.threatened_regions.includes(q.get('region')));
+    if (q.get('zone')) out = out.filter(t => t.threatened_zones.some(z => z.id === q.get('zone')));
+    if (q.get('group')) out = out.filter(t => t.threatened_zones.some(z => ZONE_BY_ID[z.id].group === q.get('group')));
     if (q.get('origin_kind')) out = out.filter(t => t.origin.kind === q.get('origin_kind'));
     out.sort((a, b) => a.eta_seconds - b.eta_seconds);
     return ok(res, { count: out.length, threats: out }, H);
@@ -377,16 +413,21 @@ function route(req, res, url, auth) {
     const out = threats.filter(t => t.ended_ms).sort((a, b) => b.ended_ms - a.ended_ms).map(t => serialize(t, now));
     return ok(res, { count: out.length, threats: out }, H);
   }
-  if (p === '/api/v1/regions') return ok(res, { count: REGIONS.length, regions: REGIONS }, H);
+  if (p === '/api/v1/zones' || p === '/api/v1/regions') {
+    const side = q.get('side') || 'csb';
+    const list = ZONES.filter(z => side === 'all' || z.side === side).map(zoneInfo);
+    return ok(res, { count: list.length, note: 'Alert zones = departments / provinces. Use ?side=du|all for Dutch Union areas.', zones: list }, H);
+  }
   if (p === '/api/v1/weapons') return ok(res, { count: Object.keys(WEAPONS).length, weapons: Object.values(WEAPONS) }, H);
   if (p === '/api/v1/launch-sites') {
     return ok(res, { count: LAUNCH_SITES.length, note: 'Only London ballistic batteries are confirmed so far; the rest are assessed by CSB Intelligence.', launch_sites: LAUNCH_SITES }, H);
   }
-  if (p === '/api/v1/frontline') {
-    return ok(res, { geojson: geojson(FRONTLINE.map(f => ({ type: 'Feature', properties: { id: f.id, name: f.name, note: f.note }, geometry: poly(f.polygon) }))) }, H);
-  }
-  if (p === '/api/v1/territories') {
-    return ok(res, { geojson: geojson(Object.values(TERRITORIES).map(t => ({ type: 'Feature', properties: { id: t.id, name: t.name, color: t.color }, geometry: poly(t.polygon) }))) }, H);
+  if (p === '/api/v1/frontline') return ok(res, { geojson: GEO.frontline }, H);
+  if (p === '/api/v1/territories') return ok(res, { geojson: GEO.sides }, H);
+  if (p === '/api/v1/geometry') {
+    const gz = /\bgzip\b/.test(req.headers['accept-encoding'] || '');
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=3600', ...(gz ? { 'Content-Encoding': 'gzip' } : {}), ...H });
+    return res.end(gz ? GEOMETRY_GZ : GEOMETRY_JSON);
   }
   if (p === '/api/v1/stats') return ok(res, { stats: stats(now) }, H);
   if (p === '/api/v1/stream') {
@@ -412,12 +453,13 @@ const INDEX = {
   demo_key: DEMO_KEY,
   rate_limit: `${RATE_LIMIT}/min per key`,
   endpoints: {
-    'GET /api/v1/alerts': 'Regions currently under alert',
-    'GET /api/v1/alerts/:regionId': 'One region + its incoming threats',
-    'GET /api/v1/threats': 'Live threats. Filters: type, weapon, status, region, origin_kind, include=ended|all',
+    'GET /api/v1/alerts': 'Zones (departments / provinces) currently under alert, with dominant threat class',
+    'GET /api/v1/alerts/:zoneId': 'One zone + its incoming threats',
+    'GET /api/v1/threats': 'Live threats. Filters: type (ballistic_missile|cruise_missile|shahed_drone|jet_drone or ballistic|cruise|shahed|jet_drone), weapon, status, zone, group, origin_kind, include=ended|all',
     'GET /api/v1/threats/:id': 'One threat incl. full trajectory',
     'GET /api/v1/history': 'Recently intercepted / impacted',
-    'GET /api/v1/regions': 'All regions',
+    'GET /api/v1/zones': 'All alert zones (?side=csb|du|all)',
+    'GET /api/v1/geometry': 'All map geometry in one request (zones, groups, sides, neutral, frontline)',
     'GET /api/v1/weapons': 'Weapon catalogue',
     'GET /api/v1/launch-sites': 'Known / assessed launch sites',
     'GET /api/v1/frontline': 'Frontline GeoJSON',
