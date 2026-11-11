@@ -7,10 +7,10 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
   :root{--bg:#0e1218;--panel:#131820;--line:#222a36;--txt:#e5e7eb;--mut:#8b95a7;
-        --ball:#e11d1d;--cruise:#f97316;--jet:#d946ef;--shahed:#eab308}
+        --ball:#e11d1d;--cruise:#f97316;--jet:#d946ef;--shahed:#eab308;--csb:#38bdf8}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  #app{display:grid;grid-template-columns:370px 1fr;height:100%}
+  #app{display:grid;grid-template-columns:380px 1fr;height:100%}
   #side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;z-index:2}
   header{padding:12px 16px 10px;border-bottom:1px solid var(--line)}
   header h1{margin:0;font-size:16px;letter-spacing:.1em;text-transform:uppercase}
@@ -25,13 +25,18 @@
   button{background:#1c2430;color:var(--txt);border:1px solid #334155;border-radius:6px;padding:8px 10px;cursor:pointer;font:inherit}
   button:hover{background:#2b3648}
   button.on{background:#7f1d1d;border-color:#b91c1c}
+  button.mini{padding:3px 8px;font-size:12px}
+  button.danger{border-color:#7f1d1d;color:#fca5a5}
+  button.pri{background:#1d4ed8;border-color:#2563eb}
+  button.pri:hover{background:#2563eb}
   #pills{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px 16px 10px;border-bottom:1px solid var(--line)}
   .pill{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;background:#0f141b;border:1px solid var(--line);cursor:pointer;user-select:none;font-size:12px}
+  .pill:last-child{grid-column:span 2}
   .pill i{width:10px;height:10px;border-radius:50%;flex:none}
   .pill b{margin-left:auto;font-size:14px}
   .pill.off{opacity:.35}
   nav{display:flex;border-bottom:1px solid var(--line)}
-  nav button{flex:1;border:0;border-radius:0;background:transparent;padding:10px;color:var(--mut);border-bottom:2px solid transparent}
+  nav button{flex:1;border:0;border-radius:0;background:transparent;padding:10px 4px;color:var(--mut);border-bottom:2px solid transparent;font-size:13px}
   nav button.act{color:var(--txt);border-bottom-color:var(--ball)}
   .tab{display:none;overflow:auto;flex:1;padding:10px 12px;min-height:0}
   .tab.act{display:block}
@@ -39,6 +44,7 @@
   .card:hover{background:#171e29}
   .card .t{display:flex;justify-content:space-between;gap:8px;font-weight:600}
   .card .m{color:var(--mut);font-size:12px;margin-top:3px}
+  .card .acts{margin-top:6px;display:flex;gap:6px}
   .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:99px;background:#1c2430;margin:2px 4px 0 0;color:#aeb8c8}
   .eta{font-variant-numeric:tabular-nums;color:#fde047;white-space:nowrap}
   .empty{color:var(--mut);text-align:center;margin-top:30px}
@@ -46,21 +52,38 @@
   code,pre{background:#0b1016;border:1px solid var(--line);border-radius:6px;font:12px ui-monospace,Menlo,Consolas,monospace}
   code{padding:1px 5px}
   pre{padding:8px;overflow:auto;white-space:pre-wrap;word-break:break-all;max-height:260px}
-  input{background:#0b1016;color:var(--txt);border:1px solid #334155;border-radius:6px;padding:8px;font:inherit;width:100%}
+  input,select{background:#0b1016;color:var(--txt);border:1px solid #334155;border-radius:6px;padding:7px 8px;font:inherit;width:100%}
+  input[type=checkbox]{width:auto}
   table{width:100%;border-collapse:collapse;font-size:12px}
   td{padding:3px 0;vertical-align:top;border-bottom:1px solid var(--line)}
   td:first-child{color:#fde047;padding-right:8px;white-space:nowrap}
+
+  /* admin */
+  details{border:1px solid var(--line);border-radius:8px;margin-bottom:8px;background:#0f141b}
+  summary{cursor:pointer;padding:8px 10px;font-weight:600;font-size:13px}
+  details>div{padding:4px 10px 10px}
+  .f{display:grid;grid-template-columns:90px 1fr;gap:6px 8px;align-items:center;margin:6px 0;font-size:12px}
+  .f label{color:var(--mut)}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--line);font-size:12px}
+  .row small{color:var(--mut)}
+  .row .btns{display:flex;gap:4px;flex:none}
+  .btnrow{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+  .admmsg{font-size:12px;color:#86efac;min-height:18px;margin-bottom:6px}
+  .wlist{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px}
+  #modebar{display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:1100;background:#1e3a8a;border:1px solid #3b82f6;border-radius:10px;padding:8px 12px;gap:8px;align-items:center;font-size:13px;box-shadow:0 4px 20px #0008}
 
   #map{height:100%;background:var(--bg)}
   .leaflet-container{background:var(--bg);font-family:inherit}
   .leaflet-tooltip{background:#111827f2;color:#e5e7eb;border:1px solid #334155;box-shadow:none;font-size:12px}
   .leaflet-tooltip-top:before{border-top-color:#334155}
   .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#111827;color:#e5e7eb;border:1px solid #334155}
+  .leaflet-popup-content button{margin:6px 4px 0 0}
   path.zone{transition:fill-opacity .3s}
   path.pulse{animation:zp 1.1s ease-in-out infinite alternate}
   @keyframes zp{from{fill-opacity:.5}to{fill-opacity:.95}}
   path.small-ring{animation:ring 1.1s ease-in-out infinite alternate}
   @keyframes ring{from{fill-opacity:.35}to{fill-opacity:.9}}
+  body.modeon .leaflet-container{cursor:crosshair}
 
   .lbl{pointer-events:none}
   .lbl span{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;text-align:center;line-height:1.1;text-shadow:0 0 3px #000,0 0 3px #000}
@@ -73,12 +96,13 @@
   .lbl.dept{display:none}
   .zoom-hi .lbl.dept{display:block}
   .zoom-hi .lbl.grp{display:none}
-  .zoom-hi .lbl.grp.keep{display:block}
 
   .tk{filter:drop-shadow(0 0 5px currentColor)}
   .tk svg{display:block}
-  .site{width:10px;height:10px;background:#8b95a7;border:2px solid #0e1218;border-radius:50%}
-  .site.confirmed{background:#ef4444;box-shadow:0 0 8px #ef4444}
+  .site{width:11px;height:11px;border:2px solid #0e1218;border-radius:50%;background:#8b95a7}
+  .site.du.confirmed{background:#ef4444;box-shadow:0 0 8px #ef4444}
+  .site.csb{background:#38bdf8;border-radius:3px;box-shadow:0 0 8px #38bdf8}
+  .site.hid{opacity:.45;outline:1px dashed #fff}
   .boom{border-radius:50%;animation:boom 1.6s ease-out forwards}
   @keyframes boom{from{transform:scale(.3);opacity:1}to{transform:scale(3);opacity:0}}
   .legend{position:absolute;right:12px;bottom:12px;z-index:900;background:#131820ea;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px}
@@ -104,13 +128,15 @@
       <button id="siren" title="Toggle siren sound">Siren: off</button>
     </div>
     <div id="pills"></div>
-    <nav>
+    <nav id="nav">
       <button data-tab="alerts" class="act">Alerts</button>
-      <button data-tab="threats">Threats</button>
+      <button data-tab="threats">Incoming</button>
+      <button data-tab="strikes">CSB strikes</button>
       <button data-tab="api">API</button>
     </nav>
     <section id="alerts" class="tab act"></section>
     <section id="threats" class="tab"></section>
+    <section id="strikes" class="tab"></section>
     <section id="api" class="tab">
       <h3>API key</h3>
       <p style="margin:0 0 6px;color:var(--mut)">Demo key (used by this page): <code>csb-demo-key</code></p>
@@ -125,10 +151,12 @@
       <h3>Example threat</h3>
       <pre id="sample">Loading...</pre>
     </section>
+    <section id="admin" class="tab"></section>
   </aside>
   <main style="position:relative;min-height:0">
     <div id="map"></div>
     <div id="toast"></div>
+    <div id="modebar"></div>
     <div class="wm"><b>CSB ALERTS</b><span id="clock"></span><br>fictional simulation</div>
     <div class="legend">
       <div><i style="background:#17223b;border:1px solid #4f8cff"></i>Carl's Spelling Bee</div>
@@ -138,6 +166,7 @@
       <div><i style="background:var(--cruise)"></i>Cruise missile alert</div>
       <div><i style="background:var(--jet)"></i>Jet drone alert</div>
       <div><i style="background:var(--shahed)"></i>Shahed drone alert</div>
+      <div><i style="background:var(--csb)"></i>CSB strike (outgoing)</div>
     </div>
   </main>
 </div>
@@ -148,112 +177,137 @@ const KEY = 'csb-demo-key';
 const BASE = location.origin + '/api/v1';
 const api = p => fetch(BASE + p, { headers: { 'x-api-key': KEY } }).then(r => r.json());
 const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const lsGet = k => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (_) {} };
 
 const CLS = ['ballistic', 'cruise', 'jet_drone', 'shahed'];
 const COL = { ballistic: '#e11d1d', cruise: '#f97316', jet_drone: '#d946ef', shahed: '#eab308' };
+const CSB_COL = '#38bdf8';
 const NAME = { ballistic: 'Ballistic missiles', cruise: 'Cruise missiles', jet_drone: 'Jet drones', shahed: 'Shahed drones' };
 const ONE = { ballistic: 'Ballistic missile', cruise: 'Cruise missile', jet_drone: 'Jet drone', shahed: 'Shahed drone' };
+const GROUP_LABEL = { 'South West': 'SW England', 'South East': 'SE England', 'East': 'East England', 'Auvergne-Rhône-Alpes': 'Auvergne-\nRhône-Alpes', "Provence-Alpes-Côte d'Azur": "Provence-Alpes\nCôte d'Azur", 'Bourgogne-Franche-Comté': 'Bourgogne-\nFranche-Comté' };
 const hidden = new Set();
-
-const GROUP_LABEL = { 'South West': 'SW England', 'South East': 'SE England', 'East': 'East England', 'Auvergne-Rhône-Alpes': 'Auvergne-\nRhône-Alpes', "Provence-Alpes-Côte d'Azur": 'Provence-Alpes\nCôte d\'Azur', 'Bourgogne-Franche-Comté': 'Bourgogne-\nFranche-Comté' };
+const colOf = t => t.side === 'csb' ? CSB_COL : COL[t.alert_class];
+const hidKey = t => t.side === 'csb' ? 'csb' : t.alert_class;
 
 /* ---------------- map ---------------- */
 const map = L.map('map', { zoomControl: true, zoomSnap: .25, minZoom: 4, maxZoom: 11, attributionControl: false })
-  .fitBounds([[41.0, -5.5], [54.2, 9.2]]);
+  .fitBounds([[40.6, -5.5], [54.2, 9.2]]);
 L.control.attribution({ prefix: false }).addTo(map).addAttribution('Borders: Natural Earth');
 const mapEl = map.getContainer();
 const syncZoom = () => mapEl.classList.toggle('zoom-hi', map.getZoom() >= 7);
 map.on('zoomend', syncZoom); syncZoom();
 
-const zoneLayers = {}, zoneLabels = {}, zoneInfo = {}, ringLayers = {}, zoneState = {};
-const siteLayers = {};
+const zoneLayers = {}, zoneLabels = {}, zoneInfo = {}, ringLayers = {}, zoneState = {}, groupLabels = {};
+const siteLayer = L.layerGroup().addTo(map);
+const frontLayer = L.layerGroup().addTo(map);
+const trailLayer = L.layerGroup().addTo(map);
+const pickLayer = L.layerGroup().addTo(map);
 const live = {};
 const seen = new Set();
-const trailLayer = L.layerGroup().addTo(map);
-let latest = { threats: [], alerts: [], fetched: Date.now() };
-let alertMap = {};
+let latest = { threats: [], strikes: [], alerts: [], fetched: Date.now() };
+let alertMap = {}, strikeZones = new Set();
 let lastAlertIds = new Set();
-let connected = true;
+let PUB = { launch_sites: [], frontline: { features: [] }, names: { zones: {}, groups: {} }, rev: 0 };
+let curRev = -1;
 
 const BASE_STYLE = {
   csb: { fillColor: '#17223b', fillOpacity: 1, color: '#34497a', weight: .9 },
   du:  { fillColor: '#3a1426', fillOpacity: 1, color: '#5a2340', weight: .8 }
 };
-function label(lat, lng, text, cls) {
-  return L.marker([lat, lng], { icon: L.divIcon({ className: 'lbl ' + cls, html: `<span>${String(text).replace(/\n/g, '<br>')}</span>`, iconSize: [0, 0] }), interactive: false, keyboard: false });
-}
+const zn = id => (PUB.names.zones[id]) || (zoneInfo[id] && zoneInfo[id].name) || id;
+const gn = g => PUB.names.groups[g] || GROUP_LABEL[g] || g;
+const labelIcon = (text, cls) => L.divIcon({ className: 'lbl ' + cls, html: `<span>${esc(text).replace(/\n/g, '<br>')}</span>`, iconSize: [0, 0] });
+const label = (lat, lng, text, cls) => L.marker([lat, lng], { icon: labelIcon(text, cls), interactive: false, keyboard: false });
 
 async function init() {
-  const [geo, sites] = await Promise.all([api('/geometry'), api('/launch-sites')]);
+  const [geo, st] = await Promise.all([api('/geometry'), api('/state')]);
+  PUB = st; curRev = st.rev;
 
-  // neutral countries
   L.geoJSON(geo.neutral, { interactive: false, style: { fillColor: '#171c25', fillOpacity: 1, color: '#232b38', weight: .8 } }).addTo(map);
   for (const n of geo.neutral_labels) label(n.lat, n.lng, n.name, 'nat').addTo(map);
 
-  // zones
-  const zl = L.geoJSON(geo.zones, {
+  L.geoJSON(geo.zones, {
     style: f => ({ ...BASE_STYLE[f.properties.side], className: 'zone' }),
     onEachFeature: (f, layer) => {
       const p = f.properties; zoneInfo[p.id] = p; zoneLayers[p.id] = layer;
       layer.bindTooltip(() => tip(p.id), { sticky: true });
-      layer.on('mouseover', () => { if (!alertMap[p.id]) layer.setStyle({ weight: 1.4, color: p.side === 'csb' ? '#4f6fb5' : '#8a3a5c' }); });
-      layer.on('mouseout', () => { if (!alertMap[p.id]) layer.setStyle({ weight: BASE_STYLE[p.side].weight, color: BASE_STYLE[p.side].color }); });
+      layer.on('mouseover', () => { if (!zoneState[p.id]) layer.setStyle({ weight: 1.4, color: p.side === 'csb' ? '#4f6fb5' : '#8a3a5c' }); });
+      layer.on('mouseout', () => { if (!zoneState[p.id]) layer.setStyle({ weight: BASE_STYLE[p.side].weight, color: BASE_STYLE[p.side].color }); });
+      layer.on('click', e => { if (mode && mode.onZone) { L.DomEvent.stop(e); mode.onZone(p.id); } });
     }
   }).addTo(map);
-
-  // region / group outlines + side outlines (non interactive)
   L.geoJSON(geo.groups, { interactive: false, style: f => f.properties.side === 'csb' ? { fill: false, color: '#3d5a9e', weight: 1.5 } : { fill: false, color: '#6b2a47', weight: 1.2 } }).addTo(map);
   L.geoJSON(geo.sides, { interactive: false, style: f => f.properties.side === 'csb' ? { fill: false, color: '#4f8cff', weight: 3 } : { fill: false, color: '#d81b6a', weight: 2.6 } }).addTo(map);
 
-  // frontline
-  L.geoJSON(geo.frontline, { style: { fillColor: '#ff2d92', fillOpacity: .55, color: '#ff7ab8', weight: 1.5 } })
-    .eachLayer(l => l.bindTooltip(l.feature.properties.name + ' - ' + l.feature.properties.note, { sticky: true })).addTo(map);
-
-  // small zones get a ring so alerts are visible
   for (const f of geo.zones.features) if (f.properties.small) {
     ringLayers[f.properties.id] = L.circleMarker([f.properties.lat, f.properties.lng], { radius: 11, weight: 2, color: '#fff', fillColor: '#e11d1d', fillOpacity: 0, opacity: 0, interactive: false, className: 'small-ring' }).addTo(map);
   }
 
-  // labels: groups (low zoom) and zones (high zoom)
   const byGroup = {};
   for (const f of geo.zones.features) {
     const p = f.properties;
     (byGroup[p.group] = byGroup[p.group] || { side: p.side, n: 0, lat: 0, lng: 0 });
     const g = byGroup[p.group]; g.n++; g.lat += p.lat; g.lng += p.lng;
     if (p.borough) continue;
-    const m = label(p.lat, p.lng, p.name, 'dept ' + p.side).addTo(map);
-    zoneLabels[p.id] = m;
+    zoneLabels[p.id] = label(p.lat, p.lng, zn(p.id), 'dept ' + p.side).addTo(map);
   }
   for (const [name, g] of Object.entries(byGroup)) {
     if (name === 'Greater London') { label(51.5, -0.12, 'London', 'dept ' + g.side).addTo(map); continue; }
-    if (['Monaco', 'Andorra'].includes(name)) continue;
-    label(g.lat / g.n, g.lng / g.n, GROUP_LABEL[name] || name, 'grp ' + g.side).addTo(map);
+    if (['Monaco', 'Andorra', 'La Rioja', 'Basque Country'].includes(name)) continue;
+    groupLabels[name] = { m: label(g.lat / g.n, g.lng / g.n, gn(name), 'grp ' + g.side).addTo(map), side: g.side };
   }
 
-  // launch sites
-  for (const s of sites.launch_sites) {
-    const m = L.marker([s.lat, s.lng], { icon: L.divIcon({ className: '', html: `<div class="site ${s.confidence}"></div>`, iconSize: [10, 10] }), opacity: s.always_visible ? 1 : 0 }).addTo(map);
-    m.bindTooltip(`${s.name} (${s.confidence})`);
-    siteLayers[s.id] = { m, always: s.always_visible };
-  }
-
+  applyState(st);
   tick();
   setInterval(tick, 2000);
   setInterval(animate, 100);
   setInterval(countdown, 1000);
   setInterval(clock, 1000); clock();
   loadSample();
+  initAdmin();
+}
+
+/* shared state: names, frontline, visible launchers */
+function applyState(st) {
+  PUB = st; curRev = st.rev;
+  for (const [id, m] of Object.entries(zoneLabels)) m.setIcon(labelIcon(zn(id), 'dept ' + zoneInfo[id].side));
+  for (const [g, o] of Object.entries(groupLabels)) o.m.setIcon(labelIcon(gn(g), 'grp ' + o.side));
+  frontLayer.clearLayers();
+  L.geoJSON(st.frontline, { style: { fillColor: '#ff2d92', fillOpacity: .55, color: '#ff7ab8', weight: 1.5 } })
+    .eachLayer(l => { l.bindTooltip(esc(l.feature.properties.name) + (l.feature.properties.note ? ' - ' + esc(l.feature.properties.note) : ''), { sticky: true }); l.on('click', e => { if (mode && mode.onMap) mode.onMap(e.latlng); }); frontLayer.addLayer(l); });
+  renderSites();
+  Object.keys(zoneState).forEach(k => delete zoneState[k]);
+  if (latest) render();
+  if (ADMIN) refreshAdmin();
+}
+async function loadState() { try { const st = await api('/state'); if (st.ok) applyState(st); } catch (_) {} }
+
+function renderSites() {
+  siteLayer.clearLayers();
+  const list = ADMIN && AS ? AS.sites : PUB.launch_sites;
+  for (const s of list) {
+    const hid = ADMIN && !s.revealed && !s.discovered;
+    const m = L.marker([s.lat, s.lng], { icon: L.divIcon({ className: '', html: `<div class="site ${s.side} ${s.confidence}${hid ? ' hid' : ''}"></div>`, iconSize: [11, 11] }), draggable: !!ADMIN, zIndexOffset: 500 });
+    m.bindTooltip(`${esc(s.name)} (${s.side === 'csb' ? 'CSB' : 'Dutch Union'} · ${s.kind}${s.confidence === 'confirmed' ? ', confirmed' : ''})${hid ? ' [hidden]' : ''}`);
+    if (ADMIN) {
+      m.on('dragend', e => { const ll = e.target.getLatLng(); act('PATCH', '/sites/' + s.id, { lat: +ll.lat.toFixed(4), lng: +ll.lng.toFixed(4) }, 'Moved ' + s.name); });
+      m.on('click', () => { if (mode && mode.onMap) return; L.popup().setLatLng([s.lat, s.lng]).setContent(`<b>${esc(s.name)}</b><br>${s.side.toUpperCase()} · ${s.kind}<br><button class="mini" onclick="adm.siteRename('${s.id}')">Rename</button><button class="mini danger" onclick="adm.siteDel('${s.id}')">Delete</button>`).openOn(map); });
+    }
+    m.addTo(siteLayer);
+  }
 }
 
 function clock() {
   const d = new Date();
   $('#clock').textContent = d.toLocaleDateString('en-GB') + ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
-
 function tip(id) {
   const z = zoneInfo[id]; const a = alertMap[id];
-  let h = `<b>${z.name}</b><br><span style="color:#8b95a7">${z.group}</span>`;
-  if (a) h += `<br><span style="color:${COL[a.dominant_threat]}">&#9679; ${ONE[a.dominant_threat]} alert</span><br>${a.weapons.join(', ')}<br>ETA ${fmt(a.nearest_eta_seconds)}`;
+  let h = `<b>${esc(zn(id))}</b><br><span style="color:#8b95a7">${esc(gn(z.group))}</span>`;
+  if (a) h += `<br><span style="color:${COL[a.dominant_threat]}">&#9679; ${ONE[a.dominant_threat]} alert</span><br>${esc(a.weapons.join(', '))}<br>ETA ${fmt(a.nearest_eta_seconds)}`;
+  else if (strikeZones.has(id)) h += `<br><span style="color:${CSB_COL}">&#9679; Under CSB fire</span>`;
   return h;
 }
 
@@ -264,56 +318,57 @@ const SHAPES = {
   shahed:    { s: 22, d: 'M12 3 L22 21 L12 16 L2 21 Z' },
   jet_drone: { s: 24, d: 'M12 1 L16 11 L22 19 L15.5 17.5 L12 22 L8.5 17.5 L2 19 L8 11 Z' }
 };
-function iconFor(cls, heading) {
-  const sh = SHAPES[cls], c = COL[cls];
-  const html = `<div class="tk" style="color:${c};transform:rotate(${heading}deg);width:${sh.s}px;height:${sh.s}px"><svg width="${sh.s}" height="${sh.s}" viewBox="0 0 24 24"><path d="${sh.d}" fill="${c}" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg></div>`;
+function iconFor(t) {
+  const sh = SHAPES[t.alert_class], c = colOf(t);
+  const html = `<div class="tk" style="color:${c};transform:rotate(${t.current_position.heading_deg}deg);width:${sh.s}px;height:${sh.s}px"><svg width="${sh.s}" height="${sh.s}" viewBox="0 0 24 24"><path d="${sh.d}" fill="${c}" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg></div>`;
   return L.divIcon({ className: '', html, iconSize: [sh.s, sh.s], iconAnchor: [sh.s / 2, sh.s / 2] });
 }
 
 /* ---------------- polling + render ---------------- */
 async function tick() {
   try {
-    const [th, al] = await Promise.all([api('/threats?include=all'), api('/alerts')]);
-    if (!th.ok || !al.ok) throw new Error('api');
-    latest = { threats: th.threats, alerts: al.alerts, fetched: Date.now() };
-    connected = true;
-    render();
-  } catch (e) { connected = false; const b = $('#badge'); b.className = 'lost'; b.textContent = 'CONNECTION LOST - retrying...'; }
+    const s = await api('/snapshot');
+    if (!s.ok) throw new Error('api');
+    latest = { threats: s.threats, strikes: s.strikes, alerts: s.alerts, fetched: Date.now() };
+    if (s.rev !== curRev) await loadState(); else render();
+  } catch (e) { const b = $('#badge'); b.className = 'lost'; b.textContent = 'CONNECTION LOST - retrying...'; }
 }
 
+const isActive = t => t.status === 'launched' || t.status === 'inbound';
 function render() {
-  const { threats, alerts } = latest;
-  const active = threats.filter(t => t.status === 'launched' || t.status === 'inbound');
-  const ended = threats.filter(t => t.status === 'intercepted' || t.status === 'impact');
+  const { threats, strikes, alerts } = latest;
+  const all = threats.concat(strikes);
+  const active = threats.filter(isActive), activeS = strikes.filter(isActive);
+  const ended = all.filter(t => !isActive(t));
   alertMap = {}; for (const a of alerts) alertMap[a.zone_id] = a;
+  strikeZones = new Set(); for (const t of activeS) for (const z of t.threatened_zones) strikeZones.add(z.id);
 
-  // badge + pills
   const b = $('#badge');
   if (alerts.length) { b.className = 'alert'; b.textContent = `AIR ALERT - ${alerts.length} zone${alerts.length > 1 ? 's' : ''} / ${active.length} threat${active.length !== 1 ? 's' : ''}`; }
   else { b.className = 'clear'; b.textContent = 'ALL CLEAR'; }
   const cnt = {}; for (const t of active) cnt[t.alert_class] = (cnt[t.alert_class] || 0) + 1;
-  $('#pills').innerHTML = CLS.map(c => `<div class="pill ${hidden.has(c) ? 'off' : ''}" data-c="${c}"><i style="background:${COL[c]}"></i>${NAME[c]}<b>${cnt[c] || 0}</b></div>`).join('');
+  $('#pills').innerHTML = CLS.map(c => `<div class="pill ${hidden.has(c) ? 'off' : ''}" data-c="${c}"><i style="background:${COL[c]}"></i>${NAME[c]}<b>${cnt[c] || 0}</b></div>`).join('')
+    + `<div class="pill ${hidden.has('csb') ? 'off' : ''}" data-c="csb"><i style="background:${CSB_COL}"></i>CSB strikes (outgoing)<b>${activeS.length}</b></div>`;
   document.querySelectorAll('.pill').forEach(p => p.onclick = () => { const c = p.dataset.c; hidden.has(c) ? hidden.delete(c) : hidden.add(c); render(); });
 
   // zone colours
   for (const [id, layer] of Object.entries(zoneLayers)) {
-    const info = zoneInfo[id]; if (info.side !== 'csb') continue;
-    const a = alertMap[id];
-    const key = a ? a.dominant_threat + ':' + a.level : '';
-    if (zoneState[id] === key) continue;
+    const info = zoneInfo[id];
+    const a = info.side === 'csb' ? alertMap[id] : null;
+    const struck = info.side === 'du' && strikeZones.has(id);
+    const key = a ? a.dominant_threat + ':' + a.level : struck ? 'strike' : '';
+    if ((zoneState[id] || '') === key) continue;
     zoneState[id] = key;
     const el = layer.getElement();
-    if (a) {
-      layer.setStyle({ fillColor: COL[a.dominant_threat], fillOpacity: .8, color: '#0e1218', weight: 1 });
-      layer.bringToFront();
-    } else layer.setStyle({ ...BASE_STYLE.csb });
+    if (a) { layer.setStyle({ fillColor: COL[a.dominant_threat], fillOpacity: .8, color: '#0e1218', weight: 1 }); layer.bringToFront(); }
+    else if (struck) { layer.setStyle({ fillColor: '#0e6a87', fillOpacity: .85, color: '#0e1218', weight: 1 }); layer.bringToFront(); }
+    else layer.setStyle({ ...BASE_STYLE[info.side] });
     if (el) el.classList.toggle('pulse', !!a && a.level === 'critical');
     const lm = zoneLabels[id]; if (lm && lm.getElement()) lm.getElement().classList.toggle('hot', !!a);
     const ring = ringLayers[id];
     if (ring) ring.setStyle({ fillOpacity: a ? .6 : 0, opacity: a ? 1 : 0, fillColor: a ? COL[a.dominant_threat] : '#e11d1d' });
   }
 
-  // new alerts -> toast / siren
   const ids = new Set(alerts.map(a => a.zone_id));
   const fresh = alerts.filter(a => !lastAlertIds.has(a.zone_id));
   if (fresh.length) {
@@ -322,59 +377,66 @@ function render() {
   }
   lastAlertIds = ids;
 
-  // threat markers
-  const activeIds = new Set(active.map(t => t.id));
-  for (const t of active) {
+  // markers (incoming + outgoing)
+  const act = active.concat(activeS);
+  const activeIds = new Set(act.map(t => t.id));
+  for (const t of act) {
     t._rx = Date.now();
     let o = live[t.id];
-    const hide = hidden.has(t.alert_class);
+    const hide = hidden.has(hidKey(t));
     if (!o) {
-      const col = COL[t.alert_class];
-      const marker = L.marker([t.current_position.lat, t.current_position.lng], { icon: iconFor(t.alert_class, t.current_position.heading_deg), zIndexOffset: 1000 }).addTo(map);
-      marker.on('click', () => showThreat(t.id));
+      const col = colOf(t);
+      const marker = L.marker([t.current_position.lat, t.current_position.lng], { icon: iconFor(t), zIndexOffset: 1000 }).addTo(map);
+      marker.on('click', () => { if (mode && mode.onMap) return; showThreat(t.id); });
       const path = L.polyline([[t.origin.lat, t.origin.lng], [t.target.lat, t.target.lng]], { color: col, weight: 1.2, dashArray: '4 6', opacity: .55, interactive: false }).addTo(trailLayer);
       const done = L.polyline([[t.origin.lat, t.origin.lng], [t.current_position.lat, t.current_position.lng]], { color: col, weight: 2.5, opacity: .9, interactive: false }).addTo(trailLayer);
       o = live[t.id] = { marker, path, done, hide: false };
     }
     o.t = t;
-    o.marker.unbindTooltip(); o.marker.bindTooltip(`${t.weapon.name} → ${t.target.name}`);
+    o.marker.unbindTooltip(); o.marker.bindTooltip(`${t.side === 'csb' ? 'CSB ' : ''}${esc(t.weapon.name)} → ${esc(t.target.name)}`);
     if (hide !== o.hide) {
       o.hide = hide;
       o.marker.setOpacity(hide ? 0 : 1);
       o.path.setStyle({ opacity: hide ? 0 : .55 }); o.done.setStyle({ opacity: hide ? 0 : .9 });
     }
-    const sl = siteLayers[t.origin.site_id]; if (sl && !sl.always) sl.m.setOpacity(1);
   }
   for (const id of Object.keys(live)) if (!activeIds.has(id)) {
-    const o = live[id]; const t = threats.find(x => x.id === id);
+    const o = live[id]; const t = all.find(x => x.id === id);
     map.removeLayer(o.marker); trailLayer.removeLayer(o.path); trailLayer.removeLayer(o.done); delete live[id];
     if (t && !seen.has(id)) { seen.add(id); boom(t); }
   }
   for (const t of ended) if (!seen.has(t.id)) { seen.add(t.id); if (Date.now() - new Date(t.ended_at) < 8000) boom(t); }
 
-  renderLists(alerts, active, ended);
+  renderLists(alerts, active, activeS, ended);
 }
 
-function renderLists(alerts, active, ended) {
-  $('#alerts').innerHTML = alerts.length ? alerts.map(a => `
+const cardActs = t => ADMIN ? `<div class="acts"><button class="mini" onclick="event.stopPropagation();adm.end('${t.id}','intercept')">Intercept</button><button class="mini" onclick="event.stopPropagation();adm.end('${t.id}','impact')">Impact</button><button class="mini danger" onclick="event.stopPropagation();adm.del('${t.id}')">Remove</button></div>` : '';
+function threatCard(t) {
+  return `<div class="card" data-t="${t.id}" style="border-left-color:${colOf(t)}">
+      <div class="t"><span>${t.side === 'csb' ? 'CSB ' : ''}${esc(t.weapon.name)}</span><span class="eta" data-eta="${t.eta_seconds}">${fmt(t.eta_seconds)}</span></div>
+      <div class="m"><span class="tag" style="color:${colOf(t)}">${ONE[t.alert_class]}</span><span class="tag">${t.status}</span><span class="tag">${t.origin.kind} launch</span></div>
+      <div class="m">From <b>${esc(t.origin.name)}</b> (${t.origin.lat.toFixed(3)}, ${t.origin.lng.toFixed(3)})</div>
+      <div class="m">To <b>${esc(t.target.name)}</b> (${esc(t.target.zone_name)}) · now ${t.current_position.lat.toFixed(3)}, ${t.current_position.lng.toFixed(3)} · ${t.current_position.altitude_m} m</div>${cardActs(t)}
+    </div>`;
+}
+const endedCard = t => `<div class="card" style="border-left-color:${t.status === 'impact' ? '#ef4444' : '#22c55e'};opacity:.75" data-t="${t.id}">
+      <div class="t"><span>${t.side === 'csb' ? 'CSB ' : ''}${esc(t.weapon.name)} → ${esc(t.target.name)}</span><span>${t.status === 'impact' ? 'IMPACT' : 'INTERCEPTED'}</span></div></div>`;
+
+function setList(id, html) { const el = $('#' + id); if (!el.matches(':hover') || !el.innerHTML) el.innerHTML = html; }
+function renderLists(alerts, active, activeS, ended) {
+  setList('alerts', alerts.length ? alerts.map(a => `
     <div class="card" data-z="${a.zone_id}" style="border-left-color:${COL[a.dominant_threat]}">
-      <div class="t"><span>${a.name}</span><span class="eta" data-eta="${a.nearest_eta_seconds}" data-at="${latest.fetched}">${fmt(a.nearest_eta_seconds)}</span></div>
-      <div class="m">${a.group}${a.level === 'critical' ? ' · <b style="color:#fca5a5">TAKE SHELTER</b>' : ''}</div>
-      <div>${a.threat_types.map(ty => { const c = ty === 'ballistic_missile' ? 'ballistic' : ty === 'cruise_missile' ? 'cruise' : ty === 'jet_drone' ? 'jet_drone' : 'shahed'; return `<span class="tag" style="color:${COL[c]}">${ONE[c]}</span>`; }).join('')}<span class="tag">${a.weapons.join(', ')}</span></div>
-    </div>`).join('') : '<div class="empty">No active alerts.<br>Stay safe.</div>';
+      <div class="t"><span>${esc(a.name)}</span><span class="eta" data-eta="${a.nearest_eta_seconds}">${fmt(a.nearest_eta_seconds)}</span></div>
+      <div class="m">${esc(a.group)}${a.level === 'critical' ? ' · <b style="color:#fca5a5">TAKE SHELTER</b>' : ''}</div>
+      <div>${a.threat_types.map(ty => { const c = ty === 'ballistic_missile' ? 'ballistic' : ty === 'cruise_missile' ? 'cruise' : ty === 'jet_drone' ? 'jet_drone' : 'shahed'; return `<span class="tag" style="color:${COL[c]}">${ONE[c]}</span>`; }).join('')}<span class="tag">${esc(a.weapons.join(', '))}</span></div>
+    </div>`).join('') : '<div class="empty">No active alerts.<br>Stay safe.</div>');
   document.querySelectorAll('#alerts .card').forEach(c => c.onclick = () => { const l = zoneLayers[c.dataset.z]; if (l) map.fitBounds(l.getBounds().pad(1.2), { maxZoom: 8 }); });
 
-  $('#threats').innerHTML = (active.length ? '' : '<div class="empty">No active threats.</div>') + active.slice().sort((a, b) => a.eta_seconds - b.eta_seconds).map(t => `
-    <div class="card" data-t="${t.id}" style="border-left-color:${COL[t.alert_class]}">
-      <div class="t"><span>${t.weapon.name}</span><span class="eta" data-eta="${t.eta_seconds}" data-at="${latest.fetched}">${fmt(t.eta_seconds)}</span></div>
-      <div class="m"><span class="tag" style="color:${COL[t.alert_class]}">${ONE[t.alert_class]}</span><span class="tag">${t.status}</span><span class="tag">${t.origin.kind} launch</span></div>
-      <div class="m">From <b>${t.origin.name}</b> (${t.origin.lat.toFixed(3)}, ${t.origin.lng.toFixed(3)})</div>
-      <div class="m">To <b>${t.target.name}</b> (${t.target.zone_name}) · now ${t.current_position.lat.toFixed(3)}, ${t.current_position.lng.toFixed(3)} · ${t.current_position.altitude_m} m</div>
-    </div>`).join('') + (ended.length ? '<h3>Recent</h3>' + ended.slice().sort((a, b) => new Date(b.ended_at) - new Date(a.ended_at)).slice(0, 12).map(t => `
-    <div class="card" style="border-left-color:${t.status === 'impact' ? '#ef4444' : '#22c55e'};opacity:.75" data-t="${t.id}">
-      <div class="t"><span>${t.weapon.name} → ${t.target.name}</span><span>${t.status === 'impact' ? 'IMPACT' : 'INTERCEPTED'}</span></div>
-    </div>`).join('') : '');
-  document.querySelectorAll('#threats .card[data-t]').forEach(c => c.onclick = () => showThreat(c.dataset.t));
+  const endedDu = ended.filter(t => t.side === 'du'), endedCsb = ended.filter(t => t.side === 'csb');
+  const recent = l => l.length ? '<h3>Recent</h3>' + l.slice().sort((a, b) => new Date(b.ended_at) - new Date(a.ended_at)).slice(0, 12).map(endedCard).join('') : '';
+  setList('threats', (active.length ? '' : '<div class="empty">No active threats.</div>') + active.slice().sort((a, b) => a.eta_seconds - b.eta_seconds).map(threatCard).join('') + recent(endedDu));
+  setList('strikes', (activeS.length ? '' : '<div class="empty">No active CSB strikes.</div>') + activeS.slice().sort((a, b) => a.eta_seconds - b.eta_seconds).map(threatCard).join('') + recent(endedCsb));
+  document.querySelectorAll('#threats .card[data-t], #strikes .card[data-t]').forEach(c => c.onclick = () => showThreat(c.dataset.t));
 }
 
 function animate() {
@@ -393,7 +455,7 @@ function animate() {
 }
 function countdown() {
   document.querySelectorAll('[data-eta]').forEach(e => {
-    const s = Math.max(0, +e.dataset.eta - (Date.now() - +e.dataset.at) / 1000);
+    const s = Math.max(0, +e.dataset.eta - (Date.now() - latest.fetched) / 1000);
     e.textContent = fmt(Math.round(s));
   });
 }
@@ -401,9 +463,10 @@ const fmt = s => s >= 60 ? `${Math.floor(s / 60)}m ${String(Math.round(s % 60)).
 
 function boom(t) {
   const hit = t.status === 'impact';
-  const m = L.marker([t.current_position.lat, t.current_position.lng], { icon: L.divIcon({ className: '', html: `<div class="boom" style="width:30px;height:30px;background:${hit ? '#ef4444' : '#22c55e'};opacity:.8"></div>`, iconSize: [30, 30] }), interactive: false }).addTo(map);
+  const m = L.marker([t.current_position.lat, t.current_position.lng], { icon: L.divIcon({ className: '', html: `<div class="boom" style="width:30px;height:30px;background:${hit ? (t.side === 'csb' ? '#7dd3fc' : '#ef4444') : '#22c55e'};opacity:.8"></div>`, iconSize: [30, 30] }), interactive: false }).addTo(map);
   setTimeout(() => map.removeLayer(m), 1700);
-  toast(hit ? `Impact near ${t.target.name}` : `${t.weapon.name} intercepted (${t.target.name})`);
+  if (t.side === 'csb') toast(hit ? `CSB strike hit ${t.target.name}` : `CSB ${t.weapon.name} intercepted near ${t.target.name}`);
+  else toast(hit ? `Impact near ${t.target.name}` : `${t.weapon.name} intercepted (${t.target.name})`);
 }
 function toast(msg) {
   const d = document.createElement('div'); d.textContent = msg; $('#toast').appendChild(d);
@@ -413,8 +476,9 @@ async function showThreat(id) {
   const r = await api('/threats/' + id);
   if (!r.ok) return;
   const t = r.threat;
+  const a = ADMIN ? `<br><button class="mini" onclick="adm.end('${t.id}','intercept');map.closePopup()">Intercept</button><button class="mini" onclick="adm.end('${t.id}','impact');map.closePopup()">Impact</button><button class="mini danger" onclick="adm.del('${t.id}');map.closePopup()">Remove</button>` : '';
   L.popup().setLatLng([t.current_position.lat, t.current_position.lng]).setContent(
-    `<b style="color:${COL[t.alert_class]}">${t.weapon.name}</b><br>${ONE[t.alert_class]} · ${t.status}<br>Launched from <b>${t.origin.name}</b><br>(${t.origin.lat}, ${t.origin.lng})<br>Target: <b>${t.target.name}</b> (${t.target.zone_name})<br>ETA ${fmt(t.eta_seconds)} · ${t.current_position.altitude_m} m<br>Zones: ${t.threatened_zones.map(z => z.name).join(', ') || '-'}`).openOn(map);
+    `<b style="color:${colOf(t)}">${t.side === 'csb' ? 'CSB ' : ''}${esc(t.weapon.name)}</b><br>${ONE[t.alert_class]} · ${t.status}<br>Launched from <b>${esc(t.origin.name)}</b><br>(${t.origin.lat}, ${t.origin.lng})<br>Target: <b>${esc(t.target.name)}</b> (${esc(t.target.zone_name)})<br>ETA ${fmt(t.eta_seconds)} · ${t.current_position.altitude_m} m<br>Zones: ${esc(t.threatened_zones.map(z => z.name).join(', ') || '-')}${a}`).openOn(map);
 }
 
 /* ---------------- sound ---------------- */
@@ -441,10 +505,11 @@ function sound(kind) {
 }
 
 /* ---------------- tabs + API panel ---------------- */
-document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('act', x === b));
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('act', t.id === b.dataset.tab));
-});
+function showTab(name) {
+  document.querySelectorAll('#nav button').forEach(x => x.classList.toggle('act', x.dataset.tab === name));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('act', t.id === name));
+}
+$('#nav').addEventListener('click', e => { const b = e.target.closest('button'); if (b) showTab(b.dataset.tab); });
 $('#curl1').textContent = `curl -H "x-api-key: ${KEY}" \\\n  ${BASE}/alerts`;
 $('#js1').textContent = `const res = await fetch("${BASE}/threats", {\n  headers: { "x-api-key": "YOUR_KEY" }\n});\nconst { threats } = await res.json();\nconsole.log(threats[0].origin, threats[0].weapon.name);`;
 $('#getkey').onclick = async () => {
@@ -452,12 +517,214 @@ $('#getkey').onclick = async () => {
   const p = $('#newkey'); p.style.display = 'block'; p.textContent = r.api_key;
 };
 fetch(BASE).then(r => r.json()).then(d => {
-  $('#eps').innerHTML = Object.entries(d.endpoints).map(([k, v]) => `<tr><td>${k.replace('GET ', '')}</td><td>${v}</td></tr>`).join('');
+  $('#eps').innerHTML = Object.entries(d.endpoints).map(([k, v]) => `<tr><td>${esc(k.replace('GET ', ''))}</td><td>${esc(v)}</td></tr>`).join('');
 });
 async function loadSample() {
   const r = await api('/threats');
   $('#sample').textContent = JSON.stringify(r.threats && r.threats[0] || r, null, 2);
 }
+
+/* =====================================================================
+   HIDDEN ADMIN  (only appears at /#admin with the correct admin key)
+   Nothing here is visible to other visitors, and nothing an admin does
+   shows any message to them - changes just appear as normal events.
+   ===================================================================== */
+let ADMIN = null, AS = null, mode = null;
+const SP = { side: 'du', weapon: 'hammer_b3', siteId: '', origin: null, kind: '', targetId: 'random', target: null, count: 1, interval: 1.2, spread: 0, outcome: 'auto', delay: 0 };
+const OPEN = { launch: true };
+let admMsg = '';
+
+async function adminApi(method, p, body) {
+  const r = await fetch(BASE + '/admin' + p, { method, headers: { 'x-admin-key': ADMIN, 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  return r.json();
+}
+async function act(method, p, body, okMsg) {
+  try {
+    const r = await adminApi(method, p, body);
+    setMsg(r.ok ? (okMsg || 'Done') : ('Error: ' + (r.message || r.error)), r.ok);
+    await refreshAdmin(); await tick();
+    return r;
+  } catch (e) { setMsg('Error: ' + e.message, false); }
+}
+function setMsg(t, good = true) { admMsg = t; const el = $('#admmsg'); if (el) { el.textContent = t; el.style.color = good ? '#86efac' : '#fca5a5'; } }
+async function refreshAdmin() {
+  if (!ADMIN) return;
+  const r = await adminApi('GET', '/state');
+  if (!r.ok) return;
+  AS = r.state;
+  if (!AS.weapons.find(w => w.id === SP.weapon)) SP.weapon = AS.weapons[0].id;
+  renderSites();
+  if (!document.activeElement || !$('#admin').contains(document.activeElement) || document.activeElement.tagName === 'BUTTON') renderAdmin();
+}
+
+async function initAdmin() {
+  if (location.hash.toLowerCase() !== '#admin') return;
+  let key = lsGet('csb_admin_key');
+  if (!key) key = prompt('Admin key');
+  if (!key) return;
+  ADMIN = key;
+  const r = await adminApi('GET', '/ping').catch(() => ({}));
+  if (!r.ok) { ADMIN = null; lsSet('csb_admin_key', null); alert('Wrong admin key'); return; }
+  lsSet('csb_admin_key', key);
+  const b = document.createElement('button'); b.dataset.tab = 'admin'; b.textContent = 'Admin'; b.style.color = '#fbbf24';
+  $('#nav').appendChild(b);
+  await refreshAdmin();
+  showTab('admin');
+  render();
+}
+
+/* ---- map interaction modes ---- */
+function setMode(m, bar) {
+  clearMode(true);
+  mode = m;
+  document.body.classList.add('modeon');
+  const el = $('#modebar'); el.style.display = 'flex'; el.innerHTML = bar();
+  m._bar = bar;
+}
+function refreshBar() { if (mode) $('#modebar').innerHTML = mode._bar(); }
+function clearMode(keepBar) {
+  if (mode && mode.cleanup) mode.cleanup();
+  mode = null; document.body.classList.remove('modeon');
+  if (!keepBar) $('#modebar').style.display = 'none';
+}
+map.on('click', e => { if (mode && mode.onMap) mode.onMap(e.latlng); });
+const fmtLL = p => p ? `${p.lat.toFixed(3)}, ${p.lng.toFixed(3)}` : '';
+function pickPoint(hint, cb) {
+  setMode({ onMap: ll => { clearMode(); cb(ll); } }, () => `${esc(hint)} <button class="mini" onclick="clearMode()">Cancel</button>`);
+}
+function showPick() {
+  pickLayer.clearLayers();
+  if (SP.origin) L.circleMarker([SP.origin.lat, SP.origin.lng], { radius: 7, color: '#fff', fillColor: SP.side === 'csb' ? CSB_COL : '#ef4444', fillOpacity: 1, weight: 2, interactive: false }).addTo(pickLayer);
+  if (SP.target) L.marker([SP.target.lat, SP.target.lng], { icon: L.divIcon({ className: '', html: '<div style="font-size:20px;color:#fff;text-shadow:0 0 4px #000;transform:translate(-50%,-50%)">✕</div>', iconSize: [0, 0] }), interactive: false }).addTo(pickLayer);
+}
+
+/* ---- admin actions (called from inline handlers) ---- */
+const adm = {
+  set(k, v) {
+    SP[k] = v;
+    if (k === 'side') {
+      SP.weapon = AS.weapons.find(w => w.owner === v).id;
+      const s = AS.sites.find(x => x.side === v); SP.siteId = s ? s.id : '';
+      SP.origin = null; SP.target = null; SP.targetId = 'random'; showPick();
+    }
+    renderAdmin();
+  },
+  setn(k, v) { SP[k] = +v; },
+  origin(v) { if (v === '__custom') { SP.siteId = '__custom'; renderAdmin(); adm.pickOrigin(); } else { SP.siteId = v; SP.origin = null; showPick(); renderAdmin(); } },
+  pickOrigin() { pickPoint('Click the launch point on the map', ll => { SP.origin = { lat: +ll.lat.toFixed(4), lng: +ll.lng.toFixed(4) }; SP.siteId = '__custom'; showPick(); renderAdmin(); }); },
+  target(v) { if (v === '__custom') { SP.targetId = '__custom'; renderAdmin(); adm.pickTarget(); } else { SP.targetId = v; SP.target = null; showPick(); renderAdmin(); } },
+  pickTarget() { pickPoint('Click the target on the map', ll => { SP.target = { lat: +ll.lat.toFixed(4), lng: +ll.lng.toFixed(4) }; SP.targetId = '__custom'; showPick(); renderAdmin(); }); },
+  async launch() {
+    const b = { side: SP.side, weapon: SP.weapon, count: SP.count, interval_ms: SP.interval * 1000, spread_km: SP.spread, outcome: SP.outcome, delay_s: SP.delay };
+    if (SP.siteId && SP.siteId !== '__custom') b.site_id = SP.siteId;
+    else if (SP.origin) b.origin = { ...SP.origin, kind: SP.kind || undefined };
+    else return setMsg('Pick a launcher or a custom launch point first', false);
+    if (SP.targetId === 'random') { /* server picks */ }
+    else if (SP.targetId === '__custom') { if (!SP.target) return setMsg('Pick the target on the map first', false); b.target = SP.target; }
+    else b.target_id = SP.targetId;
+    const r = await act('POST', '/spawn', b, 'Launched');
+    if (r && r.ok) setMsg(`Launched ${r.spawned}`, true);
+  },
+  end(id, how) { act('POST', `/threats/${id}/${how}`, {}, how === 'impact' ? 'Impact forced' : 'Intercepted'); },
+  del(id) { act('DELETE', `/threats/${id}`, null, 'Removed'); },
+  interceptAll(o) { act('POST', '/threats/intercept-all', o, 'Intercepted'); },
+  clearAll() { if (confirm('Remove ALL threats and strikes instantly (no trace)?')) act('POST', '/threats/clear', {}, 'Cleared'); },
+  siteRename(id) { const s = AS.sites.find(x => x.id === id); const v = prompt('Launcher name', s.name); if (v) { map.closePopup(); act('PATCH', '/sites/' + id, { name: v }, 'Renamed'); } },
+  siteDel(id) { map.closePopup(); act('DELETE', '/sites/' + id, null, 'Launcher deleted'); },
+  siteToggle(id, k) { const s = AS.sites.find(x => x.id === id); act('PATCH', '/sites/' + id, { [k]: !s[k] }); },
+  addSite() {
+    const name = $('#nsname').value, side = $('#nsside').value, kind = $('#nskind').value;
+    const weapons = [...document.querySelectorAll('.nsw:checked')].map(c => c.value);
+    const revealed = $('#nsrev').checked;
+    if (!weapons.length) return setMsg('Tick at least one weapon for the launcher', false);
+    pickPoint('Click where the launcher goes', ll => act('POST', '/sites', { name, side, kind, weapons, revealed, lat: +ll.lat.toFixed(4), lng: +ll.lng.toFixed(4), confidence: revealed ? 'confirmed' : 'assessed' }, 'Launcher added'));
+  },
+  targetDel(id) { act('DELETE', '/targets/' + id, null, 'Target deleted'); },
+  targetRename(id) { const t = AS.targets.find(x => x.id === id); const v = prompt('Target name', t.name); if (v) act('PATCH', '/targets/' + id, { name: v }, 'Renamed'); },
+  addTarget() {
+    const name = $('#ntname').value, owner = $('#ntowner').value;
+    pickPoint('Click where the target goes', ll => act('POST', '/targets', { name, owner, lat: +ll.lat.toFixed(4), lng: +ll.lng.toFixed(4) }, 'Target added'));
+  },
+  renameZone() {
+    setMode({ onZone: id => { const v = prompt('New name for ' + zn(id) + ' (empty = reset to original)', zn(id)); if (v !== null) act('POST', '/rename', { kind: 'zone', id, name: v }, 'Renamed'); } },
+      () => `Click a zone to rename it <button class="mini" onclick="clearMode()">Done</button>`);
+  },
+  renameGroup() {
+    setMode({ onZone: id => { const g = zoneInfo[id].group; const v = prompt('New name for region ' + gn(g) + ' (empty = reset)', gn(g)); if (v !== null) act('POST', '/rename', { kind: 'group', id: g, name: v }, 'Renamed'); } },
+      () => `Click any zone of a region to rename the region <button class="mini" onclick="clearMode()">Done</button>`);
+  },
+  drawFront() {
+    const pts = []; let poly = null;
+    const redraw = () => { if (poly) pickLayer.removeLayer(poly); poly = pts.length ? L.polygon(pts, { color: '#ff7ab8', dashArray: '5 5', fillColor: '#ff2d92', fillOpacity: .3, weight: 2, interactive: false }).addTo(pickLayer) : null; refreshBar(); };
+    setMode({
+      onMap: ll => { pts.push([+ll.lat.toFixed(4), +ll.lng.toFixed(4)]); redraw(); },
+      cleanup: () => { if (poly) pickLayer.removeLayer(poly); },
+      undo: () => { pts.pop(); redraw(); },
+      finish: () => { if (pts.length < 3) return setMsg('Need at least 3 points', false); const body = { name: $('#flname').value, note: $('#flnote').value, coordinates: pts }; clearMode(); act('POST', '/frontline', body, 'Frontline zone added'); }
+    }, () => `Drawing frontline: ${pts.length} point${pts.length === 1 ? '' : 's'} <button class="mini" onclick="mode.undo()">Undo</button><button class="mini pri" onclick="mode.finish()">Finish</button><button class="mini" onclick="clearMode()">Cancel</button>`);
+  },
+  flRename(id) { const f = AS.frontline.features.find(x => x.properties.id === id); const v = prompt('Name', f.properties.name); if (v) act('PATCH', '/frontline/' + id, { name: v }, 'Renamed'); },
+  flDel(id) { act('DELETE', '/frontline/' + id, null, 'Deleted'); },
+  flClear() { if (confirm('Delete ALL frontline zones?')) act('POST', '/frontline/clear', {}, 'Cleared'); },
+  cfg(o) { act('POST', '/config', o, 'Saved'); },
+  logout() { lsSet('csb_admin_key', null); location.hash = ''; location.reload(); }
+};
+
+function renderAdmin() {
+  if (!ADMIN || !AS) return;
+  const owner = SP.side === 'du' ? 'csb' : 'du';
+  const weapons = AS.weapons.filter(w => w.owner === SP.side);
+  const sites = AS.sites.filter(s => s.side === SP.side);
+  const targets = AS.targets.filter(t => t.owner === owner);
+  const opt = (v, t, sel) => `<option value="${esc(v)}"${sel ? ' selected' : ''}>${esc(t)}</option>`;
+  const sec = (k, title, body) => `<details data-k="${k}"${OPEN[k] ? ' open' : ''}><summary>${title}</summary><div>${body}</div></details>`;
+  const cfgc = AS.config;
+  $('#admin').innerHTML = `<div id="admmsg" class="admmsg">${esc(admMsg)}</div>` +
+  sec('launch', 'Launch missiles / drones', `
+    <div class="f"><label>Attacker</label><select onchange="adm.set('side',this.value)">${opt('du', 'Dutch Union (incoming alert)', SP.side === 'du')}${opt('csb', "Carl's Spelling Bee (outgoing)", SP.side === 'csb')}</select>
+    <label>Weapon</label><select onchange="adm.set('weapon',this.value)">${weapons.map(w => opt(w.id, `${w.name} (${w.category.replace('_', ' ')})`, w.id === SP.weapon)).join('')}</select>
+    <label>From</label><select onchange="adm.origin(this.value)">${opt('', '- choose launcher -', !SP.siteId)}${sites.map(s => opt(s.id, `${s.name} (${s.kind})`, s.id === SP.siteId)).join('')}${opt('__custom', SP.origin ? 'Custom point: ' + fmtLL(SP.origin) : 'Custom point (pick on map)…', SP.siteId === '__custom')}</select>
+    ${SP.siteId === '__custom' ? `<label>Point type</label><select onchange="adm.set('kind',this.value)">${opt('', 'auto-detect', !SP.kind)}${opt('land', 'land', SP.kind === 'land')}${opt('sea', 'sea', SP.kind === 'sea')}${opt('air', 'air', SP.kind === 'air')}</select>` : ''}
+    <label>To</label><select onchange="adm.target(this.value)">${opt('random', 'Random target in range', SP.targetId === 'random')}${targets.map(t => opt(t.id, t.name, t.id === SP.targetId)).join('')}${opt('__custom', SP.target ? 'Custom point: ' + fmtLL(SP.target) : 'Custom point (pick on map)…', SP.targetId === '__custom')}</select>
+    <label>Count</label><input type="number" min="1" max="80" value="${SP.count}" oninput="adm.setn('count',this.value)">
+    <label>Gap (s)</label><input type="number" min="0" step="0.1" value="${SP.interval}" oninput="adm.setn('interval',this.value)">
+    <label>Spread (km)</label><input type="number" min="0" max="150" value="${SP.spread}" oninput="adm.setn('spread',this.value)">
+    <label>Delay (s)</label><input type="number" min="0" value="${SP.delay}" oninput="adm.setn('delay',this.value)">
+    <label>Outcome</label><select onchange="adm.set('outcome',this.value)">${opt('auto', 'Natural (random)', SP.outcome === 'auto')}${opt('hit', 'Will hit', SP.outcome === 'hit')}${opt('intercept', 'Will be intercepted', SP.outcome === 'intercept')}</select></div>
+    <button class="pri" style="width:100%" onclick="adm.launch()">Launch</button>`) +
+  sec('act', 'Active threats', `
+    <div class="btnrow"><button class="mini" onclick="adm.interceptAll({side:'du'})">Intercept all incoming</button><button class="mini" onclick="adm.interceptAll({side:'du',type:'ballistic'})">Intercept incoming ballistic</button><button class="mini" onclick="adm.interceptAll({side:'csb'})">Intercept all CSB strikes</button><button class="mini danger" onclick="adm.clearAll()">Remove all (no trace)</button></div>
+    <div style="color:var(--mut);font-size:12px">You can also click any missile on the map, or use the buttons on the cards in the Incoming / CSB strikes tabs.</div>`) +
+  sec('sites', `Launchers (${AS.sites.length})`, `
+    <div class="f"><label>Name</label><input id="nsname" placeholder="e.g. Amsterdam battery">
+    <label>Side</label><select id="nsside">${opt('du', 'Dutch Union', true)}${opt('csb', "Carl's Spelling Bee", false)}</select>
+    <label>Type</label><select id="nskind">${opt('land', 'land', true)}${opt('sea', 'sea', false)}${opt('air', 'air', false)}</select>
+    <label>Weapons</label><div class="wlist">${AS.weapons.map(w => `<label><input type="checkbox" class="nsw" value="${w.id}"> ${esc(w.name)}</label>`).join('')}</div>
+    <label>Visible</label><label><input type="checkbox" id="nsrev"> show on the map to everyone right away</label></div>
+    <button class="pri" style="width:100%" onclick="adm.addSite()">Place on map…</button>
+    <div style="margin-top:8px">${AS.sites.map(s => `<div class="row"><span>${esc(s.name)} <small>${s.side.toUpperCase()} ${s.kind}${s.revealed ? '' : s.discovered ? ' · seen' : ' · hidden'}${s.auto === false ? ' · manual' : ''}</small></span><span class="btns"><button class="mini" onclick="adm.siteRename('${s.id}')">Name</button><button class="mini" title="show / hide" onclick="adm.siteToggle('${s.id}','revealed')">${s.revealed ? 'Hide' : 'Show'}</button><button class="mini" title="autopilot may use it" onclick="adm.siteToggle('${s.id}','auto')">${s.auto === false ? 'Auto off' : 'Auto on'}</button><button class="mini danger" onclick="adm.siteDel('${s.id}')">Delete</button></span></div>`).join('')}</div>
+    <div style="color:var(--mut);font-size:12px;margin-top:6px">Drag a launcher on the map to move it. Dutch Union launchers stay hidden from everyone until they fire or you tick "Show".</div>`) +
+  sec('front', 'Frontline', `
+    <div class="f"><label>Name</label><input id="flname" placeholder="Frontline name"><label>Note</label><input id="flnote" placeholder="optional note"></div>
+    <div class="btnrow"><button class="pri" onclick="adm.drawFront()">Draw a new zone on the map</button><button class="mini danger" onclick="adm.flClear()">Clear all</button></div>
+    ${AS.frontline.features.map(f => `<div class="row"><span>${esc(f.properties.name)}</span><span class="btns"><button class="mini" onclick="adm.flRename('${f.properties.id}')">Name</button><button class="mini danger" onclick="adm.flDel('${f.properties.id}')">Delete</button></span></div>`).join('') || '<div class="empty" style="margin:8px">No frontline zones</div>'}`) +
+  sec('names', 'Rename places', `
+    <div class="btnrow"><button onclick="adm.renameZone()">Rename a zone (click)</button><button onclick="adm.renameGroup()">Rename a region (click)</button></div>
+    <div style="color:var(--mut);font-size:12px">Leave the name empty to restore the original. Everyone sees the new names.</div>`) +
+  sec('targets', `Targets (${AS.targets.length})`, `
+    <div class="f"><label>Name</label><input id="ntname" placeholder="e.g. Power plant"><label>Owner</label><select id="ntowner">${opt('csb', 'CSB territory (hit by Dutch Union)', true)}${opt('du', 'Dutch Union territory (hit by CSB)', false)}</select></div>
+    <button class="pri" style="width:100%" onclick="adm.addTarget()">Place target on map…</button>
+    <div style="margin-top:8px;max-height:220px;overflow:auto">${AS.targets.map(t => `<div class="row"><span>${esc(t.name)} <small>${t.owner.toUpperCase()}</small></span><span class="btns"><button class="mini" onclick="adm.targetRename('${t.id}')">Name</button><button class="mini danger" onclick="adm.targetDel('${t.id}')">Delete</button></span></div>`).join('')}</div>`) +
+  sec('sim', 'Simulation', `
+    <div class="f"><label>Dutch Union autopilot</label><input type="checkbox" ${cfgc.du_auto ? 'checked' : ''} onchange="adm.cfg({du_auto:this.checked})">
+    <label>CSB autopilot</label><input type="checkbox" ${cfgc.csb_auto ? 'checked' : ''} onchange="adm.cfg({csb_auto:this.checked})">
+    <label>Intensity</label><input type="range" min="0.2" max="5" step="0.1" value="${cfgc.intensity}" onchange="adm.cfg({intensity:+this.value})">
+    <label>Time scale</label><input type="number" min="0.5" max="40" step="0.5" value="${cfgc.time_scale}" onchange="adm.cfg({time_scale:+this.value})"></div>
+    <div style="color:var(--mut);font-size:12px">Autopilot off = nothing happens unless you launch it. Time scale: higher = faster missiles (affects new launches).</div>
+    <div class="btnrow"><button class="mini" onclick="adm.logout()">Log out of admin on this device</button></div>`);
+  document.querySelectorAll('#admin details').forEach(d => d.addEventListener('toggle', () => { OPEN[d.dataset.k] = d.open; }));
+}
+
 init();
 </script>
 </body>
