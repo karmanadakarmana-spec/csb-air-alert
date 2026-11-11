@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CSB Air Alert</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{--bg:#0b0f17;--panel:#111827;--line:#1f2937;--txt:#e5e7eb;--mut:#9ca3af;--red:#ff3b30;--org:#ff9500;--yel:#ffd60a;--pink:#ff2d92;--blue:#3b82f6}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  #app{display:grid;grid-template-columns:380px 1fr;height:100%}
+  #side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  header{padding:14px 16px;border-bottom:1px solid var(--line)}
+  header h1{margin:0;font-size:16px;letter-spacing:.08em;text-transform:uppercase}
+  header .sub{color:var(--mut);font-size:12px;margin-top:2px}
+  .fict{background:#3b1d1d;color:#fecaca;font-size:11px;text-align:center;padding:4px;letter-spacing:.06em}
+  #status{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);align-items:center}
+  #badge{flex:1;padding:10px 12px;border-radius:8px;font-weight:700;letter-spacing:.04em}
+  #badge.clear{background:#052e16;color:#86efac}
+  #badge.alert{background:#450a0a;color:#fecaca;animation:flash 1s infinite alternate}
+  @keyframes flash{to{background:#7f1d1d}}
+  button{background:#1f2937;color:var(--txt);border:1px solid #374151;border-radius:6px;padding:8px 10px;cursor:pointer;font:inherit}
+  button:hover{background:#374151}
+  button.on{background:#7f1d1d;border-color:#b91c1c}
+  nav{display:flex;border-bottom:1px solid var(--line)}
+  nav button{flex:1;border:0;border-radius:0;background:transparent;padding:10px;color:var(--mut);border-bottom:2px solid transparent}
+  nav button.act{color:var(--txt);border-bottom-color:var(--red)}
+  .tab{display:none;overflow:auto;flex:1;padding:10px 12px;min-height:0}
+  .tab.act{display:block}
+  .card{background:#0f172a;border:1px solid var(--line);border-left:4px solid var(--org);border-radius:6px;padding:9px 10px;margin-bottom:8px;cursor:pointer}
+  .card:hover{background:#162033}
+  .card.critical{border-left-color:var(--red)}
+  .card .t{display:flex;justify-content:space-between;font-weight:600}
+  .card .m{color:var(--mut);font-size:12px;margin-top:3px}
+  .tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:99px;background:#1f2937;margin-right:4px;color:var(--mut)}
+  .eta{font-variant-numeric:tabular-nums;color:var(--yel)}
+  .empty{color:var(--mut);text-align:center;margin-top:30px}
+  h3{margin:14px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)}
+  code,pre{background:#0b1220;border:1px solid var(--line);border-radius:6px;font:12px ui-monospace,Menlo,Consolas,monospace}
+  code{padding:1px 5px}
+  pre{padding:8px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+  input{background:#0b1220;color:var(--txt);border:1px solid #374151;border-radius:6px;padding:8px;font:inherit;width:100%}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  td{padding:3px 0;vertical-align:top;border-bottom:1px solid var(--line)}
+  td:first-child{color:var(--yel);padding-right:8px;white-space:nowrap}
+  #map{height:100%;background:#0b0f17}
+  .leaflet-container{background:#0b0f17}
+  .region{transition:fill-opacity .4s}
+  .region.pulse{animation:rp 1.2s infinite alternate}
+  @keyframes rp{from{fill-opacity:.15}to{fill-opacity:.5}}
+  .mk{width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 10px currentColor}
+  .mk.ballistic_missile{background:var(--red);color:var(--red);border-radius:2px;transform:rotate(45deg)}
+  .mk.cruise_missile{background:var(--org);color:var(--org);border-radius:2px}
+  .mk.shahed_drone{background:var(--yel);color:var(--yel)}
+  .mk.jet_drone{background:var(--pink);color:var(--pink)}
+  .site{width:10px;height:10px;background:#9ca3af;border:2px solid #111;border-radius:50%}
+  .site.confirmed{background:#f87171}
+  .boom{border-radius:50%;animation:boom 1.6s ease-out forwards}
+  @keyframes boom{from{transform:scale(.3);opacity:1}to{transform:scale(3);opacity:0}}
+  .legend{position:absolute;right:12px;bottom:12px;z-index:900;background:#111827e6;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px}
+  .legend div{margin:2px 0}
+  .legend i{display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:2px}
+  #toast{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+  #toast div{background:#111827ee;border:1px solid #374151;padding:6px 12px;border-radius:99px;font-size:13px}
+  @media(max-width:800px){#app{grid-template-columns:1fr;grid-template-rows:55% 45%}#side{order:2;border-right:0;border-top:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <div class="fict">FICTIONAL SIMULATION - NOT REAL DATA</div>
+    <header>
+      <h1>CSB Air Alert</h1>
+      <div class="sub">Carl's Spelling Bee - national air raid warning system</div>
+    </header>
+    <div id="status">
+      <div id="badge" class="clear">ALL CLEAR</div>
+      <button id="siren" title="Toggle siren sound">Siren: off</button>
+    </div>
+    <nav>
+      <button data-tab="alerts" class="act">Alerts</button>
+      <button data-tab="threats">Threats</button>
+      <button data-tab="api">API</button>
+    </nav>
+    <section id="alerts" class="tab act"></section>
+    <section id="threats" class="tab"></section>
+    <section id="api" class="tab">
+      <h3>API key</h3>
+      <p style="margin:0 0 6px;color:var(--mut)">Demo key (used by this page): <code id="demokey">csb-demo-key</code></p>
+      <input id="keyname" placeholder="Name for your own key (optional)">
+      <button id="getkey" style="margin-top:6px;width:100%">Generate my own API key</button>
+      <pre id="newkey" style="display:none"></pre>
+      <h3>Quick start</h3>
+      <pre id="curl1"></pre>
+      <pre id="js1"></pre>
+      <h3>Endpoints</h3>
+      <table id="eps"></table>
+      <h3>Example response</h3>
+      <pre id="sample">Loading...</pre>
+    </section>
+  </aside>
+  <main style="position:relative;min-height:0">
+    <div id="map"></div>
+    <div id="toast"></div>
+    <div class="legend">
+      <div><i style="background:#1d4ed8"></i>Carl's Spelling Bee</div>
+      <div><i style="background:#9f1239"></i>Dutch Union</div>
+      <div><i style="background:#ff2d92"></i>Frontline</div>
+      <div><i style="background:var(--red)"></i>Ballistic missile</div>
+      <div><i style="background:var(--org)"></i>Cruise missile</div>
+      <div><i style="background:var(--yel);border-radius:50%"></i>Shahed drone</div>
+      <div><i style="background:var(--pink);border-radius:50%"></i>Jet drone</div>
+    </div>
+  </main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const KEY = 'csb-demo-key';
+const BASE = location.origin + '/api/v1';
+const api = p => fetch(BASE + p, { headers: { 'x-api-key': KEY } }).then(r => r.json());
+const $ = s => document.querySelector(s);
+const COLORS = { ballistic_missile: '#ff3b30', cruise_missile: '#ff9500', shahed_drone: '#ffd60a', jet_drone: '#ff2d92' };
+const LABEL = { ballistic_missile: 'Ballistic missile', cruise_missile: 'Cruise missile', shahed_drone: 'Shahed drone', jet_drone: 'Jet drone' };
+
+const map = L.map('map', { zoomControl: true }).setView([47.6, 3.2], 6);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap, &copy; CARTO', maxZoom: 12 }).addTo(map);
+
+// tabs
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('act', x === b));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('act', t.id === b.dataset.tab));
+});
+
+// static layers
+const regionLayers = {};
+const siteLayers = {};
+const seen = new Set();
+const live = {}; // id -> {marker,line,done}
+const trailLayer = L.layerGroup().addTo(map);
+let lastAlertIds = new Set();
+let latest = { threats: [], alerts: [] };
+
+async function init() {
+  const [terr, front, regs, sites] = await Promise.all([api('/territories'), api('/frontline'), api('/regions'), api('/launch-sites')]);
+  L.geoJSON(terr.geojson, { style: f => ({ color: f.properties.color, weight: 2, fillColor: f.properties.color, fillOpacity: .12 }) })
+    .eachLayer(l => l.bindTooltip(l.feature.properties.name, { sticky: true })).addTo(map);
+  L.geoJSON(front.geojson, { style: { color: '#ff2d92', weight: 2, fillColor: '#ff2d92', fillOpacity: .55 } })
+    .eachLayer(l => l.bindTooltip(l.feature.properties.name + ' - ' + l.feature.properties.note, { sticky: true })).addTo(map);
+  for (const r of regs.regions) {
+    const c = L.circle([r.lat, r.lng], { radius: r.radius_km * 1000, color: '#ef4444', weight: 1, fillColor: '#ef4444', fillOpacity: 0, opacity: 0, className: 'region' }).addTo(map);
+    c.bindTooltip(r.name, { sticky: true });
+    regionLayers[r.id] = c;
+  }
+  for (const s of sites.launch_sites) {
+    const m = L.marker([s.lat, s.lng], { icon: L.divIcon({ className: '', html: `<div class="site ${s.confidence}"></div>`, iconSize: [10, 10] }), opacity: s.always_visible ? 1 : 0 });
+    m.bindTooltip(`${s.name} (${s.confidence})`);
+    m.addTo(map);
+    siteLayers[s.id] = { m, always: s.always_visible };
+  }
+  tick();
+  setInterval(tick, 2000);
+  setInterval(animate, 100);
+  setInterval(countdown, 1000);
+  loadSample();
+}
+
+async function tick() {
+  try {
+    const [th, al] = await Promise.all([api('/threats?include=all'), api('/alerts')]);
+    latest = { threats: th.threats, alerts: al.alerts, fetched: Date.now() };
+    render();
+  } catch (e) { console.error(e); }
+}
+
+function render() {
+  const { threats, alerts } = latest;
+  const active = threats.filter(t => t.status === 'launched' || t.status === 'inbound');
+  const ended = threats.filter(t => t.status === 'intercepted' || t.status === 'impact');
+
+  // badge
+  const b = $('#badge');
+  if (alerts.length) { b.className = 'alert'; b.textContent = `AIR ALERT - ${alerts.length} region${alerts.length > 1 ? 's' : ''} / ${active.length} threat${active.length > 1 ? 's' : ''}`; }
+  else { b.className = 'clear'; b.textContent = 'ALL CLEAR'; }
+
+  // regions
+  const ids = new Set(alerts.map(a => a.region_id));
+  for (const [id, c] of Object.entries(regionLayers)) {
+    const on = ids.has(id);
+    c.setStyle({ fillOpacity: on ? .3 : 0, opacity: on ? .9 : 0 });
+    const el = c.getElement(); if (el) el.classList.toggle('pulse', on);
+  }
+  // siren / toast on new alert regions
+  for (const a of alerts) if (!lastAlertIds.has(a.region_id)) { toast(`ALERT: ${a.name}`); if (sirenOn) wail(); }
+  lastAlertIds = ids;
+
+  // threat markers
+  const activeIds = new Set(active.map(t => t.id));
+  for (const t of active) {
+    t._rx = Date.now();
+    let o = live[t.id];
+    if (!o) {
+      const marker = L.marker([t.current_position.lat, t.current_position.lng], { icon: L.divIcon({ className: '', html: `<div class="mk ${t.type}"></div>`, iconSize: [16, 16] }), zIndexOffset: 1000 }).addTo(map);
+      const col = COLORS[t.type];
+      const path = L.polyline([[t.origin.lat, t.origin.lng], [t.target.lat, t.target.lng]], { color: col, weight: 1, dashArray: '4 6', opacity: .6 }).addTo(trailLayer);
+      const done = L.polyline([[t.origin.lat, t.origin.lng], [t.current_position.lat, t.current_position.lng]], { color: col, weight: 2.5, opacity: .9 }).addTo(trailLayer);
+      marker.on('click', () => showThreat(t.id));
+      o = live[t.id] = { marker, path, done };
+    }
+    o.t = t;
+    o.marker.bindTooltip(`${t.weapon.name} → ${t.target.name}`);
+    const sl = siteLayers[t.origin.site_id]; if (sl && !sl.always) sl.m.setOpacity(1);
+  }
+  for (const id of Object.keys(live)) if (!activeIds.has(id)) {
+    const o = live[id]; const t = threats.find(x => x.id === id);
+    map.removeLayer(o.marker); trailLayer.removeLayer(o.path); trailLayer.removeLayer(o.done); delete live[id];
+    if (t && !seen.has(id)) { seen.add(id); boom(t); }
+  }
+  for (const t of ended) if (!seen.has(t.id)) { seen.add(t.id); if (Date.now() - new Date(t.ended_at) < 8000) boom(t); }
+
+  // alert list
+  $('#alerts').innerHTML = alerts.length ? alerts.map(a => `
+    <div class="card ${a.level}" data-r="${a.region_id}">
+      <div class="t"><span>${a.name}</span><span class="eta" data-eta="${a.nearest_eta_seconds}" data-at="${latest.fetched}">${fmt(a.nearest_eta_seconds)}</span></div>
+      <div class="m">${a.level === 'critical' ? '<b style="color:#fca5a5">TAKE SHELTER</b> - ' : ''}${a.threat_count} threat${a.threat_count > 1 ? 's' : ''}: ${a.weapons.join(', ')}</div>
+    </div>`).join('') : '<div class="empty">No active alerts.<br>Stay safe.</div>';
+  document.querySelectorAll('#alerts .card').forEach(c => c.onclick = () => { const l = regionLayers[c.dataset.r]; map.fitBounds(l.getBounds().pad(.5)); });
+
+  // threats list
+  $('#threats').innerHTML = (active.length ? '' : '<div class="empty">No active threats.</div>') + active.sort((a, b) => a.eta_seconds - b.eta_seconds).map(t => `
+    <div class="card" data-t="${t.id}" style="border-left-color:${COLORS[t.type]}">
+      <div class="t"><span>${t.weapon.name}</span><span class="eta" data-eta="${t.eta_seconds}" data-at="${latest.fetched}">${fmt(t.eta_seconds)}</span></div>
+      <div class="m"><span class="tag">${LABEL[t.type]}</span><span class="tag">${t.status}</span></div>
+      <div class="m">From <b>${t.origin.name}</b> (${t.origin.kind}, ${t.origin.lat.toFixed(3)}, ${t.origin.lng.toFixed(3)})</div>
+      <div class="m">To <b>${t.target.name}</b> · now ${t.current_position.lat.toFixed(3)}, ${t.current_position.lng.toFixed(3)} · ${t.current_position.altitude_m} m</div>
+    </div>`).join('') + (ended.length ? '<h3>Recent</h3>' + ended.sort((a, b) => new Date(b.ended_at) - new Date(a.ended_at)).slice(0, 12).map(t => `
+    <div class="card" style="border-left-color:${t.status === 'impact' ? '#ef4444' : '#22c55e'};opacity:.75" data-t="${t.id}">
+      <div class="t"><span>${t.weapon.name} → ${t.target.name}</span><span>${t.status === 'impact' ? 'IMPACT' : 'INTERCEPTED'}</span></div>
+    </div>`).join('') : '');
+  document.querySelectorAll('#threats .card[data-t]').forEach(c => c.onclick = () => showThreat(c.dataset.t));
+}
+
+function animate() {
+  const now = Date.now();
+  for (const o of Object.values(live)) {
+    const t = o.t; if (!t) continue;
+    const el = (now - t._rx) / 1000;
+    const total = t.eta_seconds + (t.progress > 0 ? 0 : 0);
+    const left = Math.max(0, t.eta_seconds - el);
+    const remainingFrac = t.eta_seconds > 0 ? left / t.eta_seconds : 0;
+    const p = t.progress + (1 - t.progress) * (1 - remainingFrac);
+    const lat = t.origin.lat + (t.target.lat - t.origin.lat) * p;
+    const lng = t.origin.lng + (t.target.lng - t.origin.lng) * p;
+    o.marker.setLatLng([lat, lng]);
+    o.done.setLatLngs([[t.origin.lat, t.origin.lng], [lat, lng]]);
+  }
+}
+function countdown() {
+  document.querySelectorAll('[data-eta]').forEach(e => {
+    const s = Math.max(0, +e.dataset.eta - (Date.now() - +e.dataset.at) / 1000);
+    e.textContent = fmt(Math.round(s));
+  });
+}
+const fmt = s => s >= 60 ? `${Math.floor(s / 60)}m ${String(Math.round(s % 60)).padStart(2, '0')}s` : `${s}s`;
+
+function boom(t) {
+  const hit = t.status === 'impact';
+  const m = L.marker([t.current_position.lat, t.current_position.lng], { icon: L.divIcon({ className: '', html: `<div class="boom" style="width:30px;height:30px;background:${hit ? '#ef4444' : '#22c55e'};opacity:.8"></div>`, iconSize: [30, 30] }), interactive: false }).addTo(map);
+  setTimeout(() => map.removeLayer(m), 1700);
+  toast(hit ? `Impact near ${t.target.name}` : `${t.weapon.name} intercepted (${t.target.name})`);
+}
+function toast(msg) {
+  const d = document.createElement('div'); d.textContent = msg; $('#toast').appendChild(d);
+  setTimeout(() => d.remove(), 4500);
+}
+async function showThreat(id) {
+  const r = await api('/threats/' + id);
+  if (!r.ok) return;
+  const t = r.threat;
+  L.popup().setLatLng([t.current_position.lat, t.current_position.lng]).setContent(
+    `<b>${t.weapon.name}</b><br>${LABEL[t.type]} · ${t.status}<br>Launched from <b>${t.origin.name}</b><br>(${t.origin.lat}, ${t.origin.lng})<br>Target: <b>${t.target.name}</b><br>ETA ${fmt(t.eta_seconds)} · ${t.current_position.altitude_m} m`).openOn(map);
+}
+
+// siren
+let sirenOn = false, ac;
+$('#siren').onclick = () => {
+  sirenOn = !sirenOn;
+  $('#siren').textContent = 'Siren: ' + (sirenOn ? 'on' : 'off');
+  $('#siren').classList.toggle('on', sirenOn);
+  if (sirenOn) { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); wail(); }
+};
+function wail() {
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = 'sawtooth'; g.gain.value = .05;
+  o.connect(g); g.connect(ac.destination);
+  const t = ac.currentTime;
+  o.frequency.setValueAtTime(500, t);
+  o.frequency.linearRampToValueAtTime(900, t + 1.5);
+  o.frequency.linearRampToValueAtTime(500, t + 3);
+  o.start(t); o.stop(t + 3);
+}
+
+// API tab
+$('#curl1').textContent = `curl -H "x-api-key: ${KEY}" \\\n  ${BASE}/alerts`;
+$('#js1').textContent = `const res = await fetch("${BASE}/threats", {\n  headers: { "x-api-key": "YOUR_KEY" }\n});\nconst { threats } = await res.json();\nconsole.log(threats[0].origin, threats[0].weapon.name);`;
+$('#getkey').onclick = async () => {
+  const r = await fetch(BASE + '/keys', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: $('#keyname').value || 'my app' }) }).then(r => r.json());
+  const p = $('#newkey'); p.style.display = 'block'; p.textContent = r.api_key;
+};
+fetch(BASE).then(r => r.json()).then(d => {
+  $('#eps').innerHTML = Object.entries(d.endpoints).map(([k, v]) => `<tr><td>${k.replace('GET ', '')}</td><td>${v}</td></tr>`).join('');
+});
+async function loadSample() {
+  const r = await api('/threats');
+  $('#sample').textContent = JSON.stringify(r.threats && r.threats[0] || r, null, 2);
+}
+init();
+</script>
+</body>
+</html>
