@@ -46,6 +46,7 @@
   td:first-child{color:var(--yel);padding-right:8px;white-space:nowrap}
   #map{height:100%;background:#0b0f17}
   .leaflet-container{background:#0b0f17}
+  .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.8) contrast(.9) saturate(.5)}
   .region{transition:fill-opacity .4s}
   .region.pulse{animation:rp 1.2s infinite alternate}
   @keyframes rp{from{fill-opacity:.15}to{fill-opacity:.5}}
@@ -125,7 +126,7 @@ const COLORS = { ballistic_missile: '#ff3b30', cruise_missile: '#ff9500', shahed
 const LABEL = { ballistic_missile: 'Ballistic missile', cruise_missile: 'Cruise missile', shahed_drone: 'Shahed drone', jet_drone: 'Jet drone' };
 
 const map = L.map('map', { zoomControl: true }).setView([47.6, 3.2], 6);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap, &copy; CARTO', maxZoom: 12 }).addTo(map);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors', maxZoom: 12 }).addTo(map);
 
 // tabs
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
